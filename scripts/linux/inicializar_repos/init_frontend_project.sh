@@ -2,39 +2,71 @@
 
 # Script para inicializar un proyecto frontend con React, Vite, Tailwind y pnpm
 
+# Cargar librería común
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/lib/common.sh"
+
 set -e
+trap 'error "El script falló en la línea $LINENO"' ERR
 
 # Si no se proporciona nombre, usar "frontend"
 PROJECT_NAME="${1:-frontend}"
 
-echo "🚀 Inicializando proyecto frontend: $PROJECT_NAME"
-echo "   Stack: React + Vite + Tailwind CSS + pnpm"
+show_header "Inicializador de Proyecto Frontend 🆕" "React + Vite + Tailwind + pnpm"
+
+info "Proyecto: ${BOLD}$PROJECT_NAME${NC}"
 echo ""
 
 # Verificar que pnpm esté instalado
-if ! command -v pnpm &> /dev/null; then
-    echo "❌ pnpm no está instalado"
-    echo "   Instálalo con: ./scripts/instaladores/instalar_pnpm.sh"
+progress "Verificando dependencias..."
+check_command "pnpm" "PNPM_NOT_FOUND" || exit 1
+show_version "pnpm" "--version"
+echo ""
+
+# Verificar si el directorio ya existe
+if [ -d "$PROJECT_NAME" ]; then
+    handle_error "DIRECTORY_EXISTS" "El directorio '$PROJECT_NAME' ya existe" \
+        "Usa otro nombre o elimina el directorio existente"
     exit 1
 fi
 
 # Crear proyecto con Vite
-echo "📦 Creando proyecto con Vite..."
-pnpm create vite $PROJECT_NAME --template react
+progress "📦 Creando proyecto con Vite..."
+if ! pnpm create vite $PROJECT_NAME --template react; then
+    handle_error "PROJECT_INIT_FAILED" "Falló la creación del proyecto con Vite" \
+        "Verifica tu conexión a internet"
+    exit 1
+fi
 
-cd $PROJECT_NAME
+cd $PROJECT_NAME || exit 1
 
 # Instalar dependencias
-echo "📥 Instalando dependencias..."
-pnpm install
+progress "📥 Instalando dependencias base..."
+if ! pnpm install; then
+    cd ..
+    handle_error "NPM_INSTALL_FAILED" "Falló la instalación de dependencias" \
+        "Verifica tu conexión a internet"
+    exit 1
+fi
 
 # Instalar Tailwind CSS y dependencias
-echo "🎨 Instalando Tailwind CSS..."
-pnpm install -D tailwindcss postcss autoprefixer
-pnpm exec tailwindcss init -p
+progress "🎨 Instalando Tailwind CSS..."
+if ! pnpm install -D tailwindcss postcss autoprefixer; then
+    cd ..
+    handle_error "NPM_INSTALL_FAILED" "Falló la instalación de Tailwind" \
+        "Verifica tu conexión a internet"
+    exit 1
+fi
+
+progress "⚙️  Inicializando Tailwind CSS..."
+if ! pnpm exec tailwindcss init -p; then
+    cd ..
+    handle_error "TAILWIND_INIT_FAILED" "Falló la inicialización de Tailwind" \
+        "Puede que ya esté inicializado"
+fi
 
 # Configurar Tailwind
-echo "⚙️  Configurando Tailwind CSS..."
+progress "📝 Configurando Tailwind CSS..."
 cat > tailwind.config.js << 'EOF'
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -156,11 +188,13 @@ EOF
 pnpm pkg set scripts.format="prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\""
 
 echo ""
-echo "✅ Proyecto frontend creado exitosamente!"
+success "✅ Proyecto frontend creado exitosamente!"
 echo ""
-echo "📁 Ubicación: ./$PROJECT_NAME"
+info "📁 Ubicación: ./$PROJECT_NAME"
 echo ""
-echo "Próximos pasos:"
-echo "  1. cd $PROJECT_NAME"
-echo "  2. pnpm dev"
-echo "  3. Abre http://localhost:5173 en tu navegador"
+echo -e "${CYAN}Próximos pasos:${NC}"
+echo -e "  ${GREEN}1.${NC} cd $PROJECT_NAME"
+echo -e "  ${GREEN}2.${NC} pnpm dev"
+echo -e "  ${GREEN}3.${NC} Abre http://localhost:5173 en tu navegador"
+echo ""
+success "🎉 ¡Listo para desarrollar!"

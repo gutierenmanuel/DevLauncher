@@ -3,82 +3,89 @@
 # Script de desarrollo para Wails con Hot-Reload
 # Autor: DevLauncher Project
 
-set -e  # Salir si hay errores
+# Cargar librería común
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/lib/common.sh"
 
-# Colores para output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-PURPLE='\033[0;35m'
-NC='\033[0m' # No Color
+# Configurar manejo de errores
+set -e
+trap 'error "El script falló en la línea $LINENO"' ERR
 
-echo -e "${PURPLE}╔════════════════════════════════════════╗${NC}"
-echo -e "${PURPLE}║   Wails Development Mode 🔥           ║${NC}"
-echo -e "${PURPLE}╚════════════════════════════════════════╝${NC}"
-echo ""
+show_header "Wails Development Mode 🔥" "Hot-Reload activado"
 
 # Configurar PATH para Go y Wails
 export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
 
-# Verificar que Go y Wails estén instalados
-if ! command -v go &> /dev/null; then
-    echo -e "${RED}✗ Error: Go no está instalado${NC}"
-    echo -e "${YELLOW}  Instala Go desde: https://go.dev/dl/${NC}"
-    exit 1
-fi
-
-if ! command -v wails &> /dev/null; then
-    echo -e "${RED}✗ Error: Wails no está instalado${NC}"
-    echo -e "${YELLOW}  Instala Wails con: go install github.com/wailsapp/wails/v2/cmd/wails@latest${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ Go $(go version | awk '{print $3}')${NC}"
-echo -e "${GREEN}✓ Wails CLI instalado${NC}"
+# Verificar dependencias con manejo de errores mejorado
+info "Verificando dependencias..."
 echo ""
 
-# Verificar pnpm
-if ! command -v pnpm &> /dev/null; then
-    echo -e "${RED}✗ Error: pnpm no está instalado${NC}"
-    echo -e "${YELLOW}  Instala pnpm con: npm install -g pnpm${NC}"
-    exit 1
-fi
+check_command "go" "GO_NOT_FOUND" "Go no está instalado" || exit 1
+show_version "go" "version"
 
-echo -e "${GREEN}✓ pnpm $(pnpm --version)${NC}"
+check_command "wails" "WAILS_NOT_FOUND" "Wails CLI no está instalado" || exit 1
+success "Wails CLI instalado"
+
+check_command "pnpm" "PNPM_NOT_FOUND" "pnpm no está instalado" || exit 1
+show_version "pnpm" "--version"
+
 echo ""
 
-# Ya no necesitamos copiar el frontend porque wails.json apunta directamente a ../frontend
-echo -e "${GREEN}✓ Usando frontend directamente desde ./frontend/${NC}"
-echo -e "${BLUE}  (No es necesario copiar archivos)${NC}"
+success "Usando frontend directamente desde ./frontend/"
+info "No es necesario copiar archivos"
 echo ""
 
 # Verificar dependencias del frontend
-echo -e "${YELLOW}⟳ Verificando dependencias del frontend...${NC}"
-cd frontend
-if [ ! -d "node_modules" ]; then
-    echo -e "${YELLOW}  → Instalando dependencias con pnpm...${NC}"
-    pnpm install
-else
-    echo -e "${GREEN}  ✓ Dependencias ya instaladas${NC}"
+progress "Verificando dependencias del frontend..."
+
+if [ ! -d "frontend" ]; then
+    handle_error "DIRECTORY_NOT_FOUND" "No se encuentra el directorio 'frontend'" \
+        "Verifica que estés en el directorio correcto del proyecto"
+    exit 1
 fi
+
+cd frontend || exit 1
+
+if [ ! -d "node_modules" ]; then
+    progress "Instalando dependencias con pnpm..."
+    if ! pnpm install; then
+        cd - > /dev/null
+        handle_error "NPM_INSTALL_FAILED" "Falló la instalación de dependencias" \
+            "Verifica tu conexión a internet y que package.json sea válido"
+        exit 1
+    fi
+else
+    success "Dependencias ya instaladas"
+fi
+
 cd - > /dev/null
 echo ""
 
-# Cambiar al directorio de Wails
-cd wails-app
+# Verificar directorio de Wails
+if [ ! -d "wails-app" ]; then
+    handle_error "DIRECTORY_NOT_FOUND" "No se encuentra el directorio 'wails-app'" \
+        "Verifica que estés en el directorio correcto del proyecto"
+    exit 1
+fi
 
+cd wails-app || exit 1
+
+echo ""
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 echo -e "${BLUE}  Iniciando Wails Dev Server...${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 echo ""
-echo -e "${GREEN}🔥 Hot-Reload activado${NC}"
-echo -e "${YELLOW}   Frontend: Vite + React + Tailwind${NC}"
-echo -e "${YELLOW}   Backend:  Go + WSL Manager${NC}"
-echo -e "${YELLOW}   Modo:     Directo (sin copia)${NC}"
+success "🔥 Hot-Reload activado"
+info "   Frontend: Vite + React + Tailwind"
+info "   Backend:  Go + WSL Manager"
+info "   Modo:     Directo (sin copia)"
 echo ""
-echo -e "${PURPLE}Presiona Ctrl+C para detener${NC}"
+warning "Presiona Ctrl+C para detener"
 echo ""
 
 # Ejecutar Wails en modo desarrollo
-wails dev
+if ! wails dev; then
+    handle_error "WAILS_DEV_FAILED" "El servidor de desarrollo falló" \
+        "Revisa los logs anteriores para más detalles del error"
+    exit 1
+fi

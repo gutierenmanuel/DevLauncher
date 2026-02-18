@@ -2,45 +2,59 @@
 
 # Script para instalar pnpm en Linux
 
+# Cargar librería común
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/lib/common.sh"
+
 set -e
+trap 'error "El script falló en la línea $LINENO"' ERR
 
-echo "🚀 Instalando pnpm"
-echo ""
-
-# Verificar si Node.js está instalado
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js no está instalado"
-    echo "   Instálalo primero con: ./scripts/instaladores/instalar_nodejs.sh"
-    exit 1
-fi
-
-NODE_VERSION=$(node --version)
-echo "✅ Node.js detectado: $NODE_VERSION"
-echo ""
+show_header "Instalador de pnpm 📦" "Gestor de paquetes rápido para Node.js"
 
 # Verificar si pnpm ya está instalado
 if command -v pnpm &> /dev/null; then
-    CURRENT_VERSION=$(pnpm --version)
-    echo "⚠️  pnpm ya está instalado (versión: $CURRENT_VERSION)"
-    echo "   Actualizando..."
+    warning "pnpm ya está instalado"
+    show_version "pnpm" "--version"
+    echo ""
+    
+    if ! confirm "¿Deseas reinstalar/actualizar pnpm?" "n"; then
+        info "Instalación cancelada"
+        exit 0
+    fi
+    echo ""
 fi
 
-# Instalar pnpm usando npm
-echo "📦 Instalando pnpm globalmente..."
-npm install -g pnpm
+# Verificar que npm esté instalado
+progress "Verificando dependencias..."
+check_command "npm" "NPM_NOT_FOUND" "npm no está instalado (requerido para instalar pnpm)" || exit 1
+show_version "npm" "--version"
+echo ""
+
+# Instalar pnpm globalmente
+progress "📦 Instalando pnpm globalmente..."
+if ! npm install -g pnpm; then
+    handle_error "INSTALL_FAILED" "Falló la instalación de pnpm" \
+        "Intenta ejecutar el comando con sudo: sudo npm install -g pnpm"
+    exit 1
+fi
+
+echo ""
 
 # Verificar instalación
-PNPM_VERSION=$(pnpm --version)
+if ! command -v pnpm &> /dev/null; then
+    handle_error "INSTALL_FAILED" "pnpm no se encuentra disponible después de la instalación" \
+        "Verifica que npm/bin esté en tu PATH"
+    exit 1
+fi
+
+success "✅ pnpm instalado correctamente!"
+show_version "pnpm" "--version"
 
 echo ""
-echo "✅ ¡pnpm instalado exitosamente!"
-echo "   Versión: $PNPM_VERSION"
+info "🎉 ¡Instalación completada!"
 echo ""
-echo "📝 Comandos básicos de pnpm:"
-echo "   - pnpm install           # Instalar dependencias"
-echo "   - pnpm add <package>     # Agregar paquete"
-echo "   - pnpm remove <package>  # Remover paquete"
-echo "   - pnpm run <script>      # Ejecutar script"
-echo "   - pnpm update            # Actualizar dependencias"
+info "Comandos útiles:"
+echo -e "  ${GREEN}pnpm install${NC}    - Instalar dependencias"
+echo -e "  ${GREEN}pnpm add <pkg>${NC}  - Agregar paquete"
+echo -e "  ${GREEN}pnpm run <cmd>${NC}  - Ejecutar script"
 echo ""
-echo "📚 Más info: https://pnpm.io/"

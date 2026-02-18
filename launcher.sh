@@ -1,6 +1,6 @@
 #!/bin/bash
 # Lanzador Universal de Scripts de Desarrollo
-# Permite ejecutar cualquier script desde cualquier ubicación
+# Navegación jerárquica: Carpeta → Script
 
 # Colores
 GREEN='\033[0;32m'
@@ -10,9 +10,10 @@ RED='\033[0;31m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 GRAY='\033[0;90m'
+BOLD='\033[1m'
 NC='\033[0m'
 
-# Obtener el directorio raíz del proyecto (donde está el launcher)
+# Obtener el directorio raíz del proyecto
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPTS_DIR="$SCRIPT_ROOT/scripts"
 
@@ -23,158 +24,274 @@ source "$SCRIPTS_DIR/lib/common.sh"
 # FUNCIONES DEL LANZADOR
 # ==========================================
 
-# Extraer descripción de un script (del comentario en la línea 2 o 3)
+# Obtener icono para cada categoría
+get_category_icon() {
+    local category="$1"
+    case "$category" in
+        build) echo "🏗️" ;;
+        dev) echo "💻" ;;
+        inicializar_repos) echo "🆕" ;;
+        instaladores) echo "📦" ;;
+        utils|utilidades) echo "🔧" ;;
+        *) echo "📁" ;;
+    esac
+}
+
+# Obtener descripción de categoría
+get_category_description() {
+    local category="$1"
+    case "$category" in
+        build) echo "Scripts de compilación y construcción" ;;
+        dev) echo "Scripts de desarrollo y servidor" ;;
+        inicializar_repos) echo "Inicializadores de proyectos nuevos" ;;
+        instaladores) echo "Instaladores de herramientas y dependencias" ;;
+        utils|utilidades) echo "Utilidades y herramientas varias" ;;
+        *) echo "Scripts varios" ;;
+    esac
+}
+
+# Extraer descripción de un script
 get_script_description() {
     local script_path="$1"
     local desc=""
     
-    # Intentar extraer descripción de las primeras líneas
-    desc=$(head -n 5 "$script_path" | grep -E "^#[[:space:]]*(Script|Descripción|Description)" | head -n1 | sed 's/^#[[:space:]]*//')
+    # Buscar línea con descripción (líneas 2-5)
+    desc=$(head -n 5 "$script_path" | grep -E "^#[[:space:]]*(Script|Descripción|Description)" | head -n1 | sed 's/^#[[:space:]]*//' | sed 's/Script[[:space:]]*//')
     
-    # Si no encuentra, usar el nombre del directorio como pista
     if [ -z "$desc" ]; then
-        local category=$(dirname "$script_path" | xargs basename)
-        desc="Script de $category"
+        local filename=$(basename "$script_path" .sh)
+        desc="${filename//_/ }"
     fi
     
     echo "$desc"
 }
 
-# Escanear y listar todos los scripts disponibles
-scan_scripts() {
-    local platform="$1"  # linux o win
+# Listar categorías disponibles
+list_categories() {
+    local platform="$1"
     local scan_dir="$SCRIPTS_DIR/$platform"
     
-    # Determinar extensiones según la plataforma
-    local extensions
+    find "$scan_dir" -mindepth 1 -maxdepth 1 -type d ! -name "lib" | sort | while read -r dir; do
+        basename "$dir"
+    done
+}
+
+# Listar scripts en una categoría
+list_scripts_in_category() {
+    local platform="$1"
+    local category="$2"
+    local category_dir="$SCRIPTS_DIR/$platform/$category"
+    
     if [ "$platform" = "linux" ]; then
-        extensions=".sh"
+        find "$category_dir" -type f -name "*.sh" ! -name "example_*" | sort
     else
-        extensions=".ps1|.bat"
+        find "$category_dir" -type f \( -name "*.ps1" -o -name "*.bat" \) | sort
     fi
-    
-    # Buscar scripts (excluyendo lib y ejemplos)
-    find "$scan_dir" -type f \( -name "*.sh" -o -name "*.ps1" -o -name "*.bat" \) ! -path "*/lib/*" ! -name "example_*" 2>/dev/null | sort
 }
 
-# Categorizar scripts por su ubicación
-categorize_scripts() {
-    declare -A categories
-    local script_path
-    
-    while IFS= read -r script_path; do
-        local rel_path="${script_path#$SCRIPTS_DIR/}"
-        local category=$(echo "$rel_path" | cut -d'/' -f2)
-        
-        if [ -z "${categories[$category]}" ]; then
-            categories[$category]="$script_path"
-        else
-            categories[$category]="${categories[$category]}|$script_path"
-        fi
-    done
-    
-    # Imprimir categorías
-    for category in "${!categories[@]}"; do
-        echo "$category:${categories[$category]}"
-    done
+# Contar scripts en una categoría
+count_scripts_in_category() {
+    local platform="$1"
+    local category="$2"
+    list_scripts_in_category "$platform" "$category" | wc -l
 }
 
-# Mostrar menú interactivo con fzf si está disponible
-show_menu_fzf() {
+# Menú de categorías
+show_category_menu() {
     local platform="$1"
     
-    info "Escaneando scripts disponibles..."
+    info "Escaneando categorías disponibles..."
+    echo ""
     
-    # Preparar lista de scripts con descripción
-    local -a scripts=()
-    local -a script_paths=()
-    local script_path
+    local -a categories=()
+    local -a category_displays=()
     
-    while IFS= read -r script_path; do
-        if [ -f "$script_path" ]; then
-            local filename=$(basename "$script_path")
-            local rel_path="${script_path#$SCRIPTS_DIR/$platform/}"
-            local category=$(dirname "$rel_path")
-            local description=$(get_script_description "$script_path")
-            
-            # Formato: [categoría] nombre - descripción
-            scripts+=("[$category] $filename - $description")
-            script_paths+=("$script_path")
+    while IFS= read -r category; do
+        if [ -n "$category" ]; then
+            local count=$(count_scripts_in_category "$platform" "$category")
+            if [ "$count" -gt 0 ]; then
+                categories+=("$category")
+                local icon=$(get_category_icon "$category")
+                local desc=$(get_category_description "$category")
+                category_displays+=("$icon  $category - $desc ($count scripts)")
+            fi
         fi
-    done < <(scan_scripts "$platform")
+    done < <(list_categories "$platform")
     
-    if [ ${#scripts[@]} -eq 0 ]; then
-        error "No se encontraron scripts en $platform"
+    if [ ${#categories[@]} -eq 0 ]; then
+        error "No se encontraron categorías con scripts"
         return 1
     fi
     
-    echo ""
-    success "Encontrados ${#scripts[@]} scripts"
+    success "Encontradas ${#categories[@]} categorías"
     echo ""
     
     # Usar fzf si está disponible
     if command -v fzf &> /dev/null; then
         local selection
-        selection=$(printf '%s\n' "${scripts[@]}" | fzf \
-            --height=50% \
+        selection=$(printf '%s\n' "${category_displays[@]}" | fzf \
+            --height=60% \
             --border \
-            --prompt="Selecciona un script: " \
-            --header="Usa ↑↓ para navegar, Enter para seleccionar, Esc para salir" \
-            --preview-window=right:50%:wrap \
+            --prompt="📁 Selecciona una categoría: " \
+            --header="↑↓ Navegar | Enter Seleccionar | Esc Salir" \
             --color=bg+:#2d3748,fg+:#ffffff,hl:#4299e1,hl+:#4299e1)
         
         if [ -n "$selection" ]; then
-            # Encontrar el índice del script seleccionado
+            # Extraer nombre de categoría
+            local selected_category=$(echo "$selection" | sed -E 's/^[^ ]+ +([^ ]+) -.*/\1/')
+            show_script_menu "$platform" "$selected_category"
+        else
+            warning "Cancelado"
+        fi
+    else
+        show_category_menu_select "$platform" "${categories[@]}"
+    fi
+}
+
+# Menú de categorías con select
+show_category_menu_select() {
+    local platform="$1"
+    shift
+    local categories=("$@")
+    
+    echo -e "${YELLOW}${BOLD}Selecciona una categoría:${NC}"
+    echo ""
+    
+    local i=1
+    for category in "${categories[@]}"; do
+        local icon=$(get_category_icon "$category")
+        local desc=$(get_category_description "$category")
+        local count=$(count_scripts_in_category "$platform" "$category")
+        echo -e "${CYAN}$i)${NC} $icon  ${BOLD}$category${NC}"
+        echo -e "   ${GRAY}$desc ($count scripts)${NC}"
+        ((i++))
+    done
+    echo -e "${CYAN}0)${NC} ${RED}← Salir${NC}"
+    echo ""
+    
+    read -p "Opción: " choice
+    
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#categories[@]} ]; then
+        local idx=$((choice - 1))
+        show_script_menu "$platform" "${categories[$idx]}"
+    elif [ "$choice" = "0" ]; then
+        warning "Cancelado"
+    else
+        error "Opción inválida"
+    fi
+}
+
+# Menú de scripts dentro de una categoría
+show_script_menu() {
+    local platform="$1"
+    local category="$2"
+    
+    echo ""
+    local icon=$(get_category_icon "$category")
+    echo -e "${PURPLE}╔════════════════════════════════════════════════════════════╗${NC}"
+    printf "${PURPLE}║${NC} $icon  %-52s ${PURPLE}║${NC}\n" "$category"
+    echo -e "${PURPLE}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    local -a scripts=()
+    local -a script_paths=()
+    local -a script_displays=()
+    
+    while IFS= read -r script_path; do
+        if [ -f "$script_path" ]; then
+            local filename=$(basename "$script_path")
+            local description=$(get_script_description "$script_path")
+            
+            scripts+=("$filename")
+            script_paths+=("$script_path")
+            script_displays+=("$filename - $description")
+        fi
+    done < <(list_scripts_in_category "$platform" "$category")
+    
+    if [ ${#scripts[@]} -eq 0 ]; then
+        error "No se encontraron scripts en esta categoría"
+        return 1
+    fi
+    
+    # Usar fzf si está disponible
+    if command -v fzf &> /dev/null; then
+        local selection
+        selection=$(printf '%s\n' "${script_displays[@]}" | fzf \
+            --height=60% \
+            --border \
+            --prompt="📄 Selecciona un script: " \
+            --header="↑↓ Navegar | Enter Ejecutar | Esc Volver" \
+            --color=bg+:#2d3748,fg+:#ffffff,hl:#4299e1,hl+:#4299e1)
+        
+        if [ -n "$selection" ]; then
+            # Encontrar el índice
             local idx=0
-            for i in "${!scripts[@]}"; do
-                if [ "${scripts[$i]}" = "$selection" ]; then
+            for i in "${!script_displays[@]}"; do
+                if [ "${script_displays[$i]}" = "$selection" ]; then
                     idx=$i
                     break
                 fi
             done
             
             execute_script "${script_paths[$idx]}"
+            
+            # Preguntar si quiere ejecutar otro
+            echo ""
+            if confirm "¿Ejecutar otro script de esta categoría?" "n"; then
+                show_script_menu "$platform" "$category"
+            else
+                show_category_menu "$platform"
+            fi
         else
-            warning "Cancelado por el usuario"
+            show_category_menu "$platform"
         fi
     else
-        # Fallback: menú con select
-        show_menu_select "$platform" "${scripts[@]}"
+        show_script_menu_select "$platform" "$category" "${script_paths[@]}"
     fi
 }
 
-# Menú alternativo con bash select
-show_menu_select() {
+# Menú de scripts con select
+show_script_menu_select() {
     local platform="$1"
-    shift
-    local scripts=("$@")
+    local category="$2"
+    shift 2
+    local script_paths=("$@")
     
-    echo -e "${YELLOW}Selecciona un script:${NC}"
+    echo -e "${YELLOW}${BOLD}Selecciona un script:${NC}"
     echo ""
     
-    local -a script_paths=()
-    while IFS= read -r script_path; do
-        script_paths+=("$script_path")
-    done < <(scan_scripts "$platform")
-    
-    # Mostrar menú numerado
     local i=1
-    for script in "${scripts[@]}"; do
-        echo -e "${CYAN}$i)${NC} $script"
+    for script_path in "${script_paths[@]}"; do
+        local filename=$(basename "$script_path")
+        local description=$(get_script_description "$script_path")
+        echo -e "${CYAN}$i)${NC} ${BOLD}$filename${NC}"
+        echo -e "   ${GRAY}$description${NC}"
         ((i++))
     done
-    echo -e "${CYAN}0)${NC} ${RED}Salir${NC}"
+    echo -e "${CYAN}b)${NC} ${YELLOW}← Volver a categorías${NC}"
+    echo -e "${CYAN}0)${NC} ${RED}← Salir${NC}"
     echo ""
     
     read -p "Opción: " choice
     
-    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#scripts[@]} ]; then
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#script_paths[@]} ]; then
         local idx=$((choice - 1))
         execute_script "${script_paths[$idx]}"
+        
+        echo ""
+        if confirm "¿Ejecutar otro script?" "n"; then
+            show_script_menu_select "$platform" "$category" "${script_paths[@]}"
+        else
+            show_category_menu "$platform"
+        fi
+    elif [ "$choice" = "b" ] || [ "$choice" = "B" ]; then
+        show_category_menu "$platform"
     elif [ "$choice" = "0" ]; then
-        warning "Cancelado"
+        warning "Saliendo..."
     else
         error "Opción inválida"
+        sleep 1
+        show_script_menu_select "$platform" "$category" "${script_paths[@]}"
     fi
 }
 
@@ -191,14 +308,14 @@ execute_script() {
     
     echo ""
     echo -e "${PURPLE}════════════════════════════════════════════════════════════${NC}"
-    echo -e "${PURPLE}  Ejecutando: ${CYAN}$script_name${NC}"
+    echo -e "${PURPLE}  Ejecutando: ${CYAN}${BOLD}$script_name${NC}"
     echo -e "${PURPLE}════════════════════════════════════════════════════════════${NC}"
     echo ""
     
-    # Hacer el script ejecutable si no lo es
+    # Hacer ejecutable
     chmod +x "$script_path"
     
-    # Ejecutar el script
+    # Ejecutar según extensión
     if [[ "$script_path" == *.sh ]]; then
         bash "$script_path"
     elif [[ "$script_path" == *.ps1 ]]; then
@@ -210,41 +327,45 @@ execute_script() {
     local exit_code=$?
     
     echo ""
+    echo -e "${PURPLE}════════════════════════════════════════════════════════════${NC}"
     if [ $exit_code -eq 0 ]; then
         success "Script completado exitosamente"
     else
         error "El script falló con código de salida: $exit_code"
     fi
+    echo -e "${PURPLE}════════════════════════════════════════════════════════════${NC}"
     
     return $exit_code
 }
 
-# Listar todos los scripts disponibles
+# Listar todos los scripts (modo plano)
 list_all_scripts() {
     local platform="$1"
     
     show_header "Scripts Disponibles" "Plataforma: $platform"
     
-    local script_path
     local current_category=""
     
-    while IFS= read -r script_path; do
-        local rel_path="${script_path#$SCRIPTS_DIR/$platform/}"
-        local category=$(dirname "$rel_path")
-        local filename=$(basename "$script_path")
-        local description=$(get_script_description "$script_path")
-        
-        # Mostrar categoría si cambió
-        if [ "$category" != "$current_category" ]; then
-            echo ""
-            echo -e "${PURPLE}▶ $category${NC}"
-            echo -e "${GRAY}$( printf '─%.0s' {1..60} )${NC}"
-            current_category="$category"
+    while IFS= read -r category; do
+        if [ -n "$category" ]; then
+            local count=$(count_scripts_in_category "$platform" "$category")
+            if [ "$count" -gt 0 ]; then
+                echo ""
+                local icon=$(get_category_icon "$category")
+                local desc=$(get_category_description "$category")
+                echo -e "${PURPLE}$icon  ${BOLD}$category${NC}"
+                echo -e "${GRAY}   $desc${NC}"
+                echo -e "${GRAY}   $(printf '─%.0s' {1..58})${NC}"
+                
+                while IFS= read -r script_path; do
+                    local filename=$(basename "$script_path")
+                    local description=$(get_script_description "$script_path")
+                    echo -e "   ${GREEN}•${NC} ${CYAN}$filename${NC}"
+                    echo -e "     ${GRAY}$description${NC}"
+                done < <(list_scripts_in_category "$platform" "$category")
+            fi
         fi
-        
-        echo -e "  ${GREEN}•${NC} ${CYAN}$filename${NC}"
-        echo -e "    ${GRAY}$description${NC}"
-    done < <(scan_scripts "$platform")
+    done < <(list_categories "$platform")
     
     echo ""
 }
@@ -254,7 +375,7 @@ list_all_scripts() {
 # ==========================================
 
 main() {
-    show_header "🚀 Lanzador Universal de Scripts" "Gestiona tus scripts de desarrollo fácilmente"
+    show_header "🚀 Lanzador Universal de Scripts" "Navegación jerárquica: Categoría → Script"
     
     # Detectar plataforma
     local platform="linux"
@@ -262,7 +383,8 @@ main() {
         platform="win"
     fi
     
-    info "Plataforma detectada: $platform"
+    info "Plataforma detectada: ${BOLD}$platform${NC}"
+    echo ""
     
     # Parsear argumentos
     case "${1:-}" in
@@ -273,17 +395,23 @@ main() {
             echo "Uso: $0 [opciones]"
             echo ""
             echo "Opciones:"
-            echo "  (sin opciones)  Mostrar menú interactivo"
-            echo "  -l, --list      Listar todos los scripts disponibles"
+            echo "  (sin opciones)  Mostrar menú interactivo jerárquico"
+            echo "  -l, --list      Listar todos los scripts organizados"
             echo "  -h, --help      Mostrar esta ayuda"
             echo ""
-            echo "Ejemplos:"
-            echo "  $0              # Menú interactivo"
-            echo "  $0 --list       # Lista de scripts"
+            echo "Navegación:"
+            echo "  1. Selecciona una categoría (build, dev, instaladores, etc.)"
+            echo "  2. Selecciona un script dentro de la categoría"
+            echo "  3. El script se ejecuta automáticamente"
+            echo ""
+            echo "Atajos de teclado (con fzf):"
+            echo "  ↑/↓           Navegar"
+            echo "  Enter         Seleccionar"
+            echo "  Esc           Volver/Salir"
             echo ""
             ;;
         "")
-            show_menu_fzf "$platform"
+            show_category_menu "$platform"
             ;;
         *)
             error "Opción desconocida: $1"

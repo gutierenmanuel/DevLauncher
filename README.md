@@ -1,34 +1,98 @@
 # 🚀 Scripts Development Launcher
 
-Sistema de gestión y lanzamiento de scripts de desarrollo con manejo avanzado de errores y acceso global.
+Sistema avanzado de gestión y lanzamiento de scripts de desarrollo con:
+- 🎯 Navegación jerárquica por categorías
+- 🔧 Manejo inteligente de errores con soluciones
+- 📝 Logging automático de operaciones
+- 🌐 Acceso global desde cualquier directorio
 
 ## 📁 Estructura del Proyecto
 
 ```
 Scripts_dev/
-├── launcher.sh              # Lanzador universal interactivo
-├── install.sh               # Instalador para acceso global
+├── launcher.sh              # 🎯 Lanzador universal con navegación jerárquica
+├── install.sh               # 🌐 Instalador para acceso global
 ├── scripts/
 │   ├── lib/
-│   │   ├── common.sh       # Librería común de funciones
+│   │   ├── common.sh       # 📚 Librería común de funciones
 │   │   └── example_usage.sh
 │   ├── linux/
-│   │   ├── build/          # Scripts de compilación
-│   │   ├── dev/            # Scripts de desarrollo
-│   │   ├── inicializar_repos/  # Inicializadores de proyectos
-│   │   └── instaladores/   # Instaladores de herramientas
-│   └── win/                # Scripts para Windows
-└── tests/                  # Tests (si aplica)
+│   │   ├── build/          # 🏗️ Scripts de compilación
+│   │   ├── dev/            # 💻 Scripts de desarrollo
+│   │   ├── inicializar_repos/  # 🆕 Inicializadores de proyectos
+│   │   └── instaladores/   # 📦 Instaladores de herramientas
+│   └── win/                # 🪟 Scripts para Windows
+└── tests/                  # 🧪 Tests
 ```
 
-## ✨ Características
+## ✨ Características Principales
 
-- 🎯 **Lanzador interactivo** con interfaz de menú (fzf o select)
-- 🔧 **Manejo avanzado de errores** con soluciones sugeridas
-- 📝 **Logging automático** de todas las operaciones
-- 🌐 **Acceso global** desde cualquier directorio
-- 🎨 **Interfaz colorida** y fácil de usar
-- 📦 **Organización por categorías** (build, dev, instaladores, etc.)
+### 🎯 Navegación Jerárquica (¡NUEVO!)
+
+```
+📁 Categorías
+   ├─ 🏗️  build (1 script)
+   │   └─ 📄 Scripts
+   │       └─ build.sh → ▶️ Ejecutar
+   │
+   ├─ 💻 dev (2 scripts)
+   │   └─ 📄 Scripts
+   │       ├─ dev.sh → ▶️ Ejecutar
+   │       └─ copy-to-windows.sh → ▶️ Ejecutar
+   │
+   ├─ 🆕 inicializar_repos (3 scripts)
+   │   └─ 📄 Scripts
+   │       ├─ init_frontend_project.sh → ▶️ Ejecutar
+   │       ├─ init_go_project.sh → ▶️ Ejecutar
+   │       └─ init_wails_project.sh → ▶️ Ejecutar
+   │
+   └─ 📦 instaladores (4 scripts)
+       └─ 📄 Scripts
+           ├─ instalar_go.sh → ▶️ Ejecutar
+           ├─ instalar_nodejs.sh → ▶️ Ejecutar
+           ├─ instalar_pnpm.sh → ▶️ Ejecutar
+           └─ instalar_wails.sh → ▶️ Ejecutar
+```
+
+**Flujo:** Selecciona categoría → Selecciona script → Ejecuta → Vuelve al menú
+
+### 🔧 Manejo Avanzado de Errores
+
+Cuando algo falla, obtienes información completa:
+
+```
+╔════════════════════════════════════════════════════════════╗
+║                    ✗ ERROR DETECTADO                      ║
+╚════════════════════════════════════════════════════════════╝
+
+Error: Go no está instalado
+Código: GO_NOT_FOUND
+
+🔧 Solución sugerida:
+   Instala Go desde https://go.dev/dl/ o ejecuta:
+   ./scripts/linux/instaladores/instalar_go.sh
+
+ℹ Información adicional:
+   • Script: dev.sh
+   • Línea: 15
+   • Función: main
+   • Directorio: /ruta/proyecto
+   • Usuario: lucas
+   • Log: /tmp/script-errors-20260218.log
+```
+
+### 📝 Códigos de Error con Soluciones
+
+| Código | Descripción | Solución Automática |
+|--------|-------------|---------------------|
+| `GO_NOT_FOUND` | Go no instalado | Enlace de descarga + script instalador |
+| `WAILS_NOT_FOUND` | Wails no instalado | Comando de instalación |
+| `PNPM_NOT_FOUND` | pnpm no instalado | Script instalador |
+| `NODE_NOT_FOUND` | Node.js no instalado | Enlace + script instalador |
+| `BUILD_FAILED` | Build falló | Checklist de verificación |
+| `DIRECTORY_NOT_FOUND` | Directorio inexistente | Verificar ubicación |
+| `PERMISSION_DENIED` | Sin permisos | Comandos chmod/chown |
+| `PORT_IN_USE` | Puerto ocupado | Comando para liberar |
 
 ## 🚀 Instalación Rápida
 
@@ -40,42 +104,55 @@ cd /home/lucas/DataProyects/Scripts_dev
 source ~/.bashrc  # o ~/.zshrc si usas zsh
 ```
 
-Esto te permitirá usar los scripts desde cualquier ubicación.
-
-### 2. Uso Directo
+### 2. Uso Directo (Sin instalar)
 
 ```bash
 cd /home/lucas/DataProyects/Scripts_dev
 ./launcher.sh
 ```
 
-## 📖 Uso
+## 📖 Guía de Uso
 
-### Lanzador Interactivo
+### 🎯 Lanzador Interactivo con Navegación Jerárquica
 
 ```bash
 # Con alias (después de instalar)
 devlauncher
 # o simplemente
 dl
-
-# Sin instalar
-./launcher.sh
 ```
 
-### Listar Scripts Disponibles
+**Navegación:**
+1. Ve las categorías disponibles con contador de scripts
+2. Selecciona una categoría (🏗️ build, 💻 dev, etc.)
+3. Ve los scripts en esa categoría
+4. Selecciona un script para ejecutar
+5. Después de ejecutar, puedes volver o salir
+
+**Con fzf (si está instalado):**
+- `↑/↓` - Navegar
+- `Enter` - Seleccionar
+- `Esc` - Volver/Salir
+
+**Sin fzf (menú select):**
+- Número + Enter - Seleccionar
+- `b` - Volver a categorías
+- `0` - Salir
+
+### 📋 Listar Todos los Scripts
 
 ```bash
 devlauncher --list
-# o
-./launcher.sh --list
 ```
 
-### Ejecutar Script Específico
+Muestra estructura completa organizada por categorías con descripciones.
+
+### ⚡ Ejecutar Directamente
 
 ```bash
-# Usando la función devscript (después de instalar)
+# Usando función devscript (después de instalar)
 devscript dev.sh
+devscript build.sh
 
 # Usando alias directos
 dev-start        # Iniciar desarrollo
@@ -85,21 +162,33 @@ dev-init-go      # Crear proyecto Go
 dev-init-wails   # Crear proyecto Wails
 ```
 
-## 🛠️ Scripts Disponibles
+## 🛠️ Scripts Disponibles por Categoría
 
-### 🏗️ Build
-- **build.sh** - Sistema de compilación completo
+### 🏗️ Build (Compilación)
+- **build.sh** - Sistema de compilación completo para Wails
+  - Compila frontend (React + Vite)
+  - Genera builds para Windows (debug y producción)
+  - Validaciones y verificaciones automáticas
 
-### 💻 Development
+### 💻 Dev (Desarrollo)
 - **dev.sh** - Servidor de desarrollo con hot-reload
+  - Wails dev server
+  - Recarga automática frontend y backend
+  - Validación de dependencias
+  
 - **copy-to-windows.sh** - Copiar ejecutables a Windows
 
-### 🆕 Inicializadores de Proyectos
-- **init_frontend_project.sh** - React + Vite + Tailwind + pnpm
+### 🆕 Inicializar Repos (Proyectos Nuevos)
+- **init_frontend_project.sh** - Proyecto React completo
+  - React + Vite + Tailwind CSS + pnpm
+  - Configuración predeterminada
+  - Estructura optimizada
+  
 - **init_go_project.sh** - Proyecto Go estándar
+  
 - **init_wails_project.sh** - Aplicación Wails completa
 
-### 📦 Instaladores
+### 📦 Instaladores (Herramientas)
 - **instalar_go.sh** - Instalar Go
 - **instalar_nodejs.sh** - Instalar Node.js con nvm
 - **instalar_pnpm.sh** - Instalar pnpm
@@ -107,74 +196,95 @@ dev-init-wails   # Crear proyecto Wails
 
 ## 🔧 Librería Común (common.sh)
 
-La librería proporciona funciones útiles para todos los scripts:
-
 ### Funciones de Logging
+
 ```bash
-success "Operación exitosa"     # Mensaje verde con ✓
-info "Información importante"   # Mensaje azul con ℹ
-warning "Advertencia"            # Mensaje amarillo con ⚠
-error "Error encontrado"         # Mensaje rojo con ✗
-progress "Procesando..."         # Mensaje cyan con →
+success "Operación exitosa"     # ✓ Verde
+info "Información importante"   # ℹ Azul
+warning "Advertencia"            # ⚠ Amarillo
+error "Error encontrado"         # ✗ Rojo
+progress "Procesando..."         # → Cyan
+debug "Debug info"               # Solo si DEBUG_MODE=1
 ```
 
 ### Manejo de Errores
+
 ```bash
 # Verificar comandos
 check_command "go" "GO_NOT_FOUND" "Go no está instalado"
 
+# Verificar múltiples comandos
+check_commands "go" "git" "npm"
+
 # Verificar directorios
 check_directory "/ruta/dir" "El directorio no existe"
 
+# Verificar archivos
+check_file "/ruta/archivo" "El archivo no existe"
+
 # Ejecutar con manejo de errores
-safe_run "npm install" "NPM_FAILED" "Falló la instalación de npm"
+safe_run "npm install" "NPM_FAILED" "Falló npm install"
 
 # Manejar errores personalizados
-handle_error "MI_ERROR" "Descripción del error" "Solución sugerida"
+handle_error "MI_ERROR" "Descripción" "Solución sugerida"
 ```
 
 ### Utilidades
+
 ```bash
-# Mostrar header
+# Mostrar header bonito
 show_header "Mi Script" "Subtítulo opcional"
 
-# Confirmar acción
-if confirm "¿Continuar con la operación?"; then
+# Mostrar versión de comando
+show_version "node" "--version"
+
+# Confirmar con usuario
+if confirm "¿Continuar?" "y"; then
     # hacer algo
 fi
 
-# Mostrar versión
-show_version "node" "--version"
+# Activar trap de errores
+setup_error_trap  # Captura errores con línea exacta
 ```
 
 ## 📝 Crear Nuevos Scripts
 
-### 1. Estructura Básica
+### 1. Plantilla Básica
 
 ```bash
 #!/bin/bash
-# Descripción breve del script
+# Descripción breve del script (aparecerá en el launcher)
 
 # Cargar librería común
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/lib/common.sh"
+source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/lib/common.sh"
 
-# Tu código aquí
-show_header "Mi Nuevo Script"
+# Configurar manejo de errores
+set -e
+trap 'error "El script falló en la línea $LINENO"' ERR
+
+# Header
+show_header "Mi Nuevo Script" "Descripción opcional"
 
 # Verificar dependencias
 check_command "git" "GIT_NOT_FOUND" || exit 1
 
-# Resto del script...
+# Tu código aquí
+progress "Haciendo algo..."
+success "¡Completado!"
 ```
 
 ### 2. Ubicación
 
-Coloca tu script en la carpeta apropiada:
-- `scripts/linux/build/` - Scripts de compilación
-- `scripts/linux/dev/` - Scripts de desarrollo
-- `scripts/linux/instaladores/` - Scripts de instalación
-- `scripts/linux/inicializar_repos/` - Scripts de inicialización
+Coloca tu script en la carpeta apropiada según su categoría:
+
+```
+scripts/linux/
+├── build/          # Scripts de compilación
+├── dev/            # Scripts de desarrollo
+├── instaladores/   # Scripts de instalación
+└── inicializar_repos/  # Scripts de inicialización
+```
 
 ### 3. Permisos
 
@@ -182,9 +292,9 @@ Coloca tu script en la carpeta apropiada:
 chmod +x tu-script.sh
 ```
 
-El lanzador detectará automáticamente el nuevo script.
+**¡El launcher lo detectará automáticamente!** 🎉
 
-## 🐛 Debugging
+## 🐛 Debugging y Logs
 
 ### Activar Modo Debug
 
@@ -192,72 +302,183 @@ El lanzador detectará automáticamente el nuevo script.
 DEBUG_MODE=1 devscript tu-script.sh
 ```
 
+Mostrará mensajes adicionales de debug y el flujo de ejecución.
+
 ### Ver Logs
 
 ```bash
-# Ver el log del día
+# Ver el log del día actual
 cat /tmp/script-errors-$(date +%Y%m%d).log
 
 # Seguir el log en tiempo real
 tail -f /tmp/script-errors-$(date +%Y%m%d).log
+
+# Buscar errores específicos
+grep "ERROR" /tmp/script-errors-*.log
 ```
 
-## 🎨 Códigos de Error Predefinidos
+### Estructura del Log
 
-La librería maneja automáticamente estos errores:
-
-- `GO_NOT_FOUND` - Go no está instalado
-- `WAILS_NOT_FOUND` - Wails no está instalado
-- `PNPM_NOT_FOUND` - pnpm no está instalado
-- `NODE_NOT_FOUND` - Node.js no está instalado
-- `GIT_NOT_FOUND` - Git no está instalado
-- `BUILD_FAILED` - Falló la compilación
-- `NETWORK_ERROR` - Error de conexión
-- `PORT_IN_USE` - Puerto ya en uso
-- `DIRECTORY_NOT_FOUND` - Directorio no encontrado
-- `PERMISSION_DENIED` - Problema de permisos
-
-Cada error incluye soluciones sugeridas automáticamente.
-
-## 📚 Ejemplos
-
-### Ejemplo 1: Inicializar un proyecto frontend
-```bash
-dev-init-frontend mi-proyecto
-# o
-devscript init_frontend_project.sh mi-proyecto
+```
+[2026-02-18 14:30:15] [INFO] Iniciando script dev.sh
+[2026-02-18 14:30:16] [SUCCESS] Go detectado: 1.21.0
+[2026-02-18 14:30:17] [ERROR] Code: WAILS_NOT_FOUND | Description: Wails no instalado | Script: dev.sh | Line: 25
 ```
 
-### Ejemplo 2: Iniciar desarrollo
+## �� Ejemplos de Uso
+
+### Ejemplo 1: Flujo Completo de Desarrollo
+
 ```bash
-dev-start
-# o desde cualquier directorio del proyecto
-cd /ruta/a/mi/proyecto
-devlauncher  # seleccionar dev.sh
+# 1. Instalar herramientas necesarias
+devlauncher
+# → Selecciona 📦 instaladores
+# → Selecciona instalar_go.sh
+# → Ejecuta
+
+# 2. Crear proyecto nuevo
+devlauncher
+# → Selecciona 🆕 inicializar_repos
+# → Selecciona init_frontend_project.sh
+# → Ejecuta
+
+# 3. Iniciar desarrollo
+cd mi-proyecto
+dev-start  # o devlauncher → 💻 dev → dev.sh
 ```
 
-### Ejemplo 3: Compilar proyecto
+### Ejemplo 2: Build y Deploy
+
 ```bash
-dev-build
+# Compilar proyecto
+dev-build  # o devlauncher → 🏗️ build → build.sh
+
+# Copiar a Windows
+devscript copy-to-windows.sh
+```
+
+### Ejemplo 3: Manejo de Errores
+
+```bash
+# Si un script falla, verás:
+devlauncher → 💻 dev → dev.sh
+
+# Output si Go no está instalado:
+╔════════════════════════════════════════════════════════════╗
+║                    ✗ ERROR DETECTADO                      ║
+╚════════════════════════════════════════════════════════════╝
+
+Error: Go no está instalado
+Código: GO_NOT_FOUND
+
+🔧 Solución sugerida:
+   Instala Go desde https://go.dev/dl/ o ejecuta:
+   ./scripts/linux/instaladores/instalar_go.sh
+
+# Puedes entonces ejecutar directamente:
+devlauncher → 📦 instaladores → instalar_go.sh
 ```
 
 ## 🤝 Contribuir
 
-Para agregar nuevos scripts:
+### Agregar un nuevo script:
 
-1. Crea tu script en la carpeta apropiada
-2. Incluye una descripción en las primeras líneas
-3. Usa la librería común para manejo de errores
-4. Hazlo ejecutable con `chmod +x`
+1. **Crea el script** en la carpeta apropiada
+2. **Agrega descripción** en las primeras líneas con formato:
+   ```bash
+   # Script para hacer X
+   ```
+3. **Usa la librería común** para logging y errores
+4. **Hazlo ejecutable**: `chmod +x tu-script.sh`
+
+### Agregar un nuevo código de error:
+
+Edita `scripts/lib/common.sh` y agrega en `get_error_solution()`:
+
+```bash
+"MI_NUEVO_ERROR")
+    echo "Descripción del problema"
+    echo "   ${GREEN}Solución paso 1${NC}"
+    echo "   ${GREEN}Solución paso 2${NC}"
+    ;;
+```
+
+## 🎓 Consejos y Trucos
+
+### 1. Instalar fzf para mejor experiencia
+
+```bash
+# Ubuntu/Debian
+sudo apt install fzf
+
+# Con el launcher tendrás un menú mucho más bonito
+```
+
+### 2. Alias personalizados
+
+Después de instalar, puedes agregar más alias en tu `~/.bashrc`:
+
+```bash
+alias dl-dev="devscript dev.sh"
+alias dl-build="devscript build.sh"
+alias dl-frontend="devscript init_frontend_project.sh"
+```
+
+### 3. Variables de entorno
+
+```bash
+# Activar debug permanentemente
+echo 'export DEBUG_MODE=1' >> ~/.bashrc
+
+# Cambiar ubicación de logs
+echo 'export ERROR_LOG_FILE=~/dev-scripts.log' >> ~/.bashrc
+```
 
 ## 📄 Licencia
 
-[Tu licencia aquí]
+MIT License - Siéntete libre de usar y modificar
 
 ## 👤 Autor
 
-Lucas - DevLauncher Project
+**Lucas** - DevLauncher Project
 
 ---
 
-**¿Necesitas ayuda?** Ejecuta `devlauncher --help` o revisa los logs en `/tmp/script-errors-*.log`
+## 🆘 Ayuda y Soporte
+
+### Comandos de ayuda
+```bash
+devlauncher --help     # Ver opciones del launcher
+devlauncher --list     # Listar todos los scripts
+```
+
+### Problemas comunes
+
+**El launcher no funciona:**
+```bash
+chmod +x launcher.sh
+./launcher.sh
+```
+
+**Los scripts no se encuentran:**
+```bash
+# Reinstalar
+./install.sh
+source ~/.bashrc
+```
+
+**Errores de permisos:**
+```bash
+chmod +x scripts/**/*.sh
+```
+
+### Logs para debugging
+```bash
+tail -f /tmp/script-errors-$(date +%Y%m%d).log
+```
+
+---
+
+**¿Más preguntas?** Revisa los logs en `/tmp/script-errors-*.log` o consulta el código fuente de `common.sh` para ver todas las funciones disponibles.
+
+🎉 **¡Disfruta de tu sistema de scripts mejorado!**
