@@ -15,6 +15,7 @@ $NC = "`e[0m"
 # Obtener el directorio raíz del proyecto
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ScriptsDir = Join-Path $ScriptRoot "scripts"
+$StaticDir = Join-Path $ScriptRoot "static"
 
 # Cargar librería común si existe
 $CommonLib = Join-Path $ScriptsDir "lib\common.ps1"
@@ -121,14 +122,25 @@ function Show-Header {
     param([string]$Title, [string]$Subtitle = "")
     
     Write-Host ""
-    Write-Host "${Purple}╔════════════════════════════════════════════════════════════╗${NC}"
-    $titlePadded = "  $Title" + (" " * (57 - $Title.Length))
-    Write-Host "${Purple}║${NC}$titlePadded${Purple}║${NC}"
-    if ($Subtitle) {
-        $subtitlePadded = "  $Subtitle" + (" " * (57 - $Subtitle.Length))
-        Write-Host "${Purple}║${NC}$subtitlePadded${Purple}║${NC}"
+    
+    # Cargar ASCII art desde archivo
+    $asciiFile = Join-Path $StaticDir "asciiart.txt"
+    if (Test-Path $asciiFile) {
+        $asciiLines = Get-Content -Path $asciiFile
+        foreach ($line in $asciiLines) {
+            if ($line -match "Dev.*Launcher") {
+                Write-Host $line -ForegroundColor Cyan
+            } else {
+                Write-Host $line -ForegroundColor Magenta
+            }
+        }
+    } else {
+        # Fallback si no existe el archivo
+        Write-Host "${Purple}╔════════════════════════════════════════════════════════════╗${NC}"
+        Write-Host "${Purple}║  🚀 Lanzador Universal de Scripts                         ║${NC}"
+        Write-Host "${Purple}╚════════════════════════════════════════════════════════════╝${NC}"
     }
-    Write-Host "${Purple}╚════════════════════════════════════════════════════════════╝${NC}"
+    
     Write-Host ""
 }
 
@@ -136,7 +148,9 @@ function Show-Header {
 function Show-CategoryMenu {
     param([string]$Platform)
     
-    Write-Host "${Blue}→ Escaneando categorías disponibles...${NC}"
+    Show-Header -Breadcrumb @("Inicio")
+    
+    Write-Host "${DimGray}→ Escaneando categorías...${NC}"
     Write-Host ""
     
     $categories = @(Get-Categories -Platform $Platform)
@@ -155,33 +169,47 @@ function Show-CategoryMenu {
     }
     
     if ($validCategories.Count -eq 0) {
-        Write-Host "${Red}✗ No se encontraron categorías con scripts${NC}"
+        Write-Host "${Red}✗ No se encontraron categorías${NC}"
         return
     }
     
-    Write-Host "${Green}✓ Encontradas $($validCategories.Count) categorías${NC}"
-    Write-Host ""
-    Write-Host "${Yellow}${Bold}Selecciona una categoría:${NC}"
+    # Box superior
+    Write-Host "${Cyan}$BoxTL$($BoxH * 58)$BoxTR${NC}"
+    Write-Host "${Cyan}$BoxV${NC} ${Yellow}${Bold}Selecciona una categoría${NC}$(' ' * 31)${Cyan}$BoxV${NC}"
+    Write-Host "${Cyan}$BoxBL$($BoxH * 58)$BoxBR${NC}"
     Write-Host ""
     
     $i = 1
     foreach ($cat in $validCategories) {
-        Write-Host "${Cyan}$i)${NC} $($cat.Icon)  ${Bold}$($cat.Name)${NC}"
-        Write-Host "   ${Gray}$($cat.Description) ($($cat.Count) scripts)${NC}"
+        Write-Host "  ${Cyan}${Bold}[$i]${NC} $($cat.Icon)  ${Bold}$($cat.Name)${NC}"
+        Write-Host "      ${DimGray}$($BoxSep * 2)${NC} ${Gray}$($cat.Description)${NC}"
+        Write-Host "      ${DimGray}$($BoxSep * 2)${NC} ${DimGray}$($cat.Count) script$(if($cat.Count -ne 1){'s'})${NC}"
+        if ($i -lt $validCategories.Count) {
+            Write-Host ""
+        }
         $i++
     }
-    Write-Host "${Cyan}0)${NC} ${Red}← Salir${NC}"
+    
+    Write-Host ""
+    Write-Host "${DimGray}$($BoxSep * 60)${NC}"
+    Write-Host "  ${Cyan}${Bold}[0]${NC} ${Red}Salir${NC}"
     Write-Host ""
     
-    $choice = Read-Host "Opción"
+    Write-Host -NoNewline "${Yellow}▶${NC} Opción: "
+    $choice = Read-Host
     
     if ($choice -match '^\d+$' -and [int]$choice -ge 1 -and [int]$choice -le $validCategories.Count) {
         $selectedCategory = $validCategories[[int]$choice - 1].Name
         Show-ScriptMenu -Platform $Platform -Category $selectedCategory
     } elseif ($choice -eq "0") {
-        Write-Host "${Yellow}Cancelado${NC}"
+        Write-Host ""
+        Write-Host "${Yellow}¡Hasta luego!${NC}"
+        Write-Host ""
     } else {
+        Write-Host ""
         Write-Host "${Red}✗ Opción inválida${NC}"
+        Start-Sleep -Seconds 1
+        Show-CategoryMenu -Platform $Platform
     }
 }
 
@@ -189,53 +217,71 @@ function Show-CategoryMenu {
 function Show-ScriptMenu {
     param([string]$Platform, [string]$Category)
     
+    Show-Header -Breadcrumb @("Inicio", $Category)
+    
     Write-Host ""
     $icon = Get-CategoryIcon -Category $Category
-    Write-Host "${Purple}╔════════════════════════════════════════════════════════════╗${NC}"
-    $catPadded = "  $icon  $Category" + (" " * (55 - $Category.Length - $icon.Length))
-    Write-Host "${Purple}║${NC}$catPadded${Purple}║${NC}"
-    Write-Host "${Purple}╚════════════════════════════════════════════════════════════╝${NC}"
-    Write-Host ""
     
     $scripts = @(Get-ScriptsInCategory -Platform $Platform -Category $Category)
     
     if ($scripts.Count -eq 0) {
         Write-Host "${Red}✗ No se encontraron scripts en esta categoría${NC}"
+        Start-Sleep -Seconds 2
+        Show-CategoryMenu -Platform $Platform
         return
     }
     
-    Write-Host "${Yellow}${Bold}Selecciona un script:${NC}"
+    # Box superior
+    Write-Host "${Cyan}$BoxTL$($BoxH * 58)$BoxTR${NC}"
+    Write-Host "${Cyan}$BoxV${NC} $icon  ${Yellow}${Bold}$Category${NC}$(' ' * (50 - $Category.Length))${Cyan}$BoxV${NC}"
+    Write-Host "${Cyan}$BoxML$($BoxH * 58)$BoxMR${NC}"
+    Write-Host "${Cyan}$BoxV${NC} ${DimGray}$($scripts.Count) script$(if($scripts.Count -ne 1){'s'}) disponible$(if($scripts.Count -ne 1){'s'})${NC}$(' ' * (32 - $scripts.Count.ToString().Length))${Cyan}$BoxV${NC}"
+    Write-Host "${Cyan}$BoxBL$($BoxH * 58)$BoxBR${NC}"
     Write-Host ""
     
     $i = 1
     foreach ($script in $scripts) {
         $description = Get-ScriptDescription -ScriptPath $script.FullName
-        Write-Host "${Cyan}$i)${NC} ${Bold}$($script.Name)${NC}"
-        Write-Host "   ${Gray}$description${NC}"
+        Write-Host "  ${Cyan}${Bold}[$i]${NC} ${Bold}$($script.Name)${NC}"
+        if ($description) {
+            Write-Host "      ${DimGray}$($BoxSep * 2)${NC} ${Gray}$description${NC}"
+        }
+        if ($i -lt $scripts.Count) {
+            Write-Host ""
+        }
         $i++
     }
-    Write-Host "${Cyan}b)${NC} ${Yellow}← Volver a categorías${NC}"
-    Write-Host "${Cyan}0)${NC} ${Red}← Salir${NC}"
+    
+    Write-Host ""
+    Write-Host "${DimGray}$($BoxSep * 60)${NC}"
+    Write-Host "  ${Cyan}${Bold}[.]${NC} ${Yellow}Volver atrás${NC}"
+    Write-Host "  ${Cyan}${Bold}[0]${NC} ${Red}Salir${NC}"
     Write-Host ""
     
-    $choice = Read-Host "Opción"
+    Write-Host -NoNewline "${Yellow}▶${NC} Opción: "
+    $choice = Read-Host
     
     if ($choice -match '^\d+$' -and [int]$choice -ge 1 -and [int]$choice -le $scripts.Count) {
         $selectedScript = $scripts[[int]$choice - 1]
+        Clear-Screen
         Invoke-Script -ScriptPath $selectedScript.FullName
         
         Write-Host ""
-        $response = Read-Host "¿Ejecutar otro script? (s/n)"
+        Write-Host -NoNewline "${Yellow}▶${NC} ¿Ejecutar otro script? ${DimGray}(s/N)${NC}: "
+        $response = Read-Host
         if ($response -match '^[sS]$') {
             Show-ScriptMenu -Platform $Platform -Category $Category
         } else {
             Show-CategoryMenu -Platform $Platform
         }
-    } elseif ($choice -match '^[bB]$') {
+    } elseif ($choice -eq ".") {
         Show-CategoryMenu -Platform $Platform
     } elseif ($choice -eq "0") {
-        Write-Host "${Yellow}Saliendo...${NC}"
+        Write-Host ""
+        Write-Host "${Yellow}¡Hasta luego!${NC}"
+        Write-Host ""
     } else {
+        Write-Host ""
         Write-Host "${Red}✗ Opción inválida${NC}"
         Start-Sleep -Seconds 1
         Show-ScriptMenu -Platform $Platform -Category $Category
@@ -254,9 +300,9 @@ function Invoke-Script {
     $scriptName = Split-Path -Leaf $ScriptPath
     
     Write-Host ""
-    Write-Host "${Purple}════════════════════════════════════════════════════════════${NC}"
-    Write-Host "${Purple}  Ejecutando: ${Cyan}${Bold}$scriptName${NC}"
-    Write-Host "${Purple}════════════════════════════════════════════════════════════${NC}"
+    Write-Host "${Cyan}$BoxTL$($BoxH * 58)$BoxTR${NC}"
+    Write-Host "${Cyan}$BoxV${NC} ${Magenta}⚡ Ejecutando:${NC} ${Bold}$scriptName${NC}$(' ' * (43 - $scriptName.Length))${Cyan}$BoxV${NC}"
+    Write-Host "${Cyan}$BoxBL$($BoxH * 58)$BoxBR${NC}"
     Write-Host ""
     
     $extension = [System.IO.Path]::GetExtension($ScriptPath)
@@ -283,22 +329,29 @@ function Invoke-Script {
     }
     
     Write-Host ""
-    Write-Host "${Purple}════════════════════════════════════════════════════════════${NC}"
     if ($exitCode -eq 0 -or $null -eq $exitCode) {
-        Write-Host "${Green}✓ Script completado exitosamente${NC}"
+        Write-Host "${Green}$BoxTL$($BoxH * 58)$BoxTR${NC}"
+        Write-Host "${Green}$BoxV${NC} ${Green}✓ Script completado exitosamente${NC}$(' ' * 24)${Green}$BoxV${NC}"
+        Write-Host "${Green}$BoxBL$($BoxH * 58)$BoxBR${NC}"
     } else {
-        Write-Host "${Red}✗ El script falló con código de salida: $exitCode${NC}"
+        Write-Host "${Red}$BoxTL$($BoxH * 58)$BoxTR${NC}"
+        Write-Host "${Red}$BoxV${NC} ${Red}✗ El script falló con código de salida: $exitCode${NC}$(' ' * (19 - $exitCode.ToString().Length))${Red}$BoxV${NC}"
+        Write-Host "${Red}$BoxBL$($BoxH * 58)$BoxBR${NC}"
     }
-    Write-Host "${Purple}════════════════════════════════════════════════════════════${NC}"
 }
 
 # Listar todos los scripts (modo plano)
 function Show-AllScripts {
     param([string]$Platform)
     
-    Show-Header "Scripts Disponibles" "Plataforma: $Platform"
+    Show-Header -Breadcrumb @("Inicio", "Lista completa")
+    
+    Write-Host "${DimGray}→ Plataforma: $Platform${NC}"
+    Write-Host ""
     
     $categories = @(Get-Categories -Platform $Platform)
+    $totalScripts = 0
+    $validCategoryCount = 0
     
     foreach ($category in $categories) {
         $count = Count-ScriptsInCategory -Platform $Platform -Category $category
@@ -306,19 +359,29 @@ function Show-AllScripts {
             Write-Host ""
             $icon = Get-CategoryIcon -Category $category
             $desc = Get-CategoryDescription -Category $category
-            Write-Host "${Purple}$icon  ${Bold}$category${NC}"
-            Write-Host "${Gray}   $desc${NC}"
-            Write-Host "${Gray}   $('─' * 58)${NC}"
+            
+            Write-Host "${Cyan}$BoxTL$($BoxH * 58)$BoxTR${NC}"
+            Write-Host "${Cyan}$BoxV${NC} $icon  ${Yellow}${Bold}$category${NC}$(' ' * (50 - $category.Length))${Cyan}$BoxV${NC}"
+            Write-Host "${Cyan}$BoxBL$($BoxH * 58)$BoxBR${NC}"
+            Write-Host ""
             
             $scripts = Get-ScriptsInCategory -Platform $Platform -Category $category
             foreach ($script in $scripts) {
                 $description = Get-ScriptDescription -ScriptPath $script.FullName
-                Write-Host "   ${Green}•${NC} ${Cyan}$($script.Name)${NC}"
-                Write-Host "     ${Gray}$description${NC}"
+                Write-Host "  ${Cyan}•${NC} ${Bold}$($script.Name)${NC}"
+                if ($description) {
+                    Write-Host "    ${DimGray}$($BoxSep * 2)${NC} ${Gray}$description${NC}"
+                }
             }
+            
+            $totalScripts += $count
+            $validCategoryCount++
         }
     }
     
+    Write-Host ""
+    Write-Host "${DimGray}$($BoxSep * 60)${NC}"
+    Write-Host "${DimGray}Total: $totalScripts scripts en $validCategoryCount categorías${NC}"
     Write-Host ""
 }
 
@@ -329,13 +392,12 @@ function Show-AllScripts {
 function Main {
     param([string[]]$Arguments)
     
-    Show-Header "🚀 Lanzador Universal de Scripts" "Navegación jerárquica: Categoría → Script"
+    Show-Header
     
     # Detectar plataforma - Windows siempre usa carpeta 'win'
     $platform = "win"
     
-    Write-Host "${Blue}→ Plataforma detectada: ${Bold}Windows ($platform)${NC}"
-    Write-Host "${Gray}→ Directorio de scripts: $ScriptsDir\$platform${NC}"
+    Write-Host "${Gray}Plataforma: Windows | Directorio: $ScriptsDir\$platform${NC}"
     Write-Host ""
     
     # Parsear argumentos

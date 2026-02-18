@@ -5,16 +5,30 @@
 # ==========================================
 # COLORES Y FORMATO
 # ==========================================
+export PURPLE='\033[35m'
+export MAGENTA='\033[35m'
 export GREEN='\033[0;32m'
 export BLUE='\033[0;34m'
 export YELLOW='\033[1;33m'
 export RED='\033[0;31m'
-export PURPLE='\033[0;35m'
 export CYAN='\033[0;36m'
 export ORANGE='\033[0;33m'
 export GRAY='\033[0;90m'
+export DIM_GRAY='\033[2;37m'
 export BOLD='\033[1m'
+export DIM='\033[2m'
 export NC='\033[0m'
+
+# Box drawing characters
+export BOX_TL="╔"  # Top Left
+export BOX_TR="╗"  # Top Right
+export BOX_BL="╚"  # Bottom Left
+export BOX_BR="╝"  # Bottom Right
+export BOX_H="═"   # Horizontal
+export BOX_V="║"   # Vertical
+export BOX_ML="╠"  # Middle Left
+export BOX_MR="╣"  # Middle Right
+export BOX_SEP="─" # Separator
 
 # ==========================================
 # SÍMBOLOS
@@ -295,18 +309,62 @@ check_file() {
 # FUNCIONES DE UTILIDAD
 # ==========================================
 
-# Mostrar header de script
-show_header() {
-    local title="$1"
-    local subtitle="${2:-}"
+# Limpiar pantalla
+clear_screen() {
+    clear
+}
+
+# Mostrar breadcrumbs
+show_breadcrumb() {
+    local path_array=("$@")
+    local breadcrumb=""
     
-    echo -e "${PURPLE}╔════════════════════════════════════════════════════════════╗${NC}"
-    printf "${PURPLE}║${NC} %-57s ${PURPLE}║${NC}\n" "$title"
-    if [ -n "$subtitle" ]; then
-        printf "${PURPLE}║${NC} %-57s ${PURPLE}║${NC}\n" "$subtitle"
-    fi
-    echo -e "${PURPLE}╚════════════════════════════════════════════════════════════╝${NC}"
+    for i in "${!path_array[@]}"; do
+        if [ $i -eq 0 ]; then
+            breadcrumb="${CYAN}${path_array[$i]}${NC}"
+        else
+            breadcrumb="${breadcrumb} ${DIM_GRAY}>${NC} ${CYAN}${path_array[$i]}${NC}"
+        fi
+    done
+    
+    echo -e "${DIM_GRAY}┌─${NC} $breadcrumb"
     echo ""
+}
+
+# Mostrar header de script con ASCII art
+show_header() {
+    local breadcrumb_args=("$@")
+    
+    clear_screen
+    
+    # Ruta al archivo de ASCII art
+    local script_dir="$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")"
+    local ascii_file="$script_dir/static/asciiart.txt"
+    
+    if [ -f "$ascii_file" ]; then
+        # Leer y colorear el ASCII art
+        while IFS= read -r line; do
+            if [[ "$line" =~ Dev.*Launcher ]]; then
+                # Líneas con "Dev Launcher" en cyan
+                echo -e "${CYAN}$line${NC}"
+            else
+                # Resto del arte en magenta
+                echo -e "${MAGENTA}$line${NC}"
+            fi
+        done < "$ascii_file"
+    else
+        # Fallback si no existe el archivo
+        echo -e "${MAGENTA}${BOX_TL}$(printf '%0.s═' {1..60})${BOX_TR}${NC}"
+        echo -e "${MAGENTA}${BOX_V}  🚀 Dev Launcher - Gestor de Scripts                    ${BOX_V}${NC}"
+        echo -e "${MAGENTA}${BOX_BL}$(printf '%0.s═' {1..60})${BOX_BR}${NC}"
+    fi
+    
+    echo ""
+    
+    # Mostrar breadcrumb si existe
+    if [ ${#breadcrumb_args[@]} -gt 0 ]; then
+        show_breadcrumb "${breadcrumb_args[@]}"
+    fi
 }
 
 # Mostrar versión de un comando
