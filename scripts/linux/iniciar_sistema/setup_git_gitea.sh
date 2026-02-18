@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Cargar librería común
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/lib/common.sh"
+source "$(dirname "$(dirname "$SCRIPT_DIR")")/lib/common.sh"
 
 set -e
 trap 'error "El script falló en la línea $LINENO"' ERR
