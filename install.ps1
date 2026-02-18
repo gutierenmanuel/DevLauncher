@@ -82,7 +82,7 @@ $config = @"
 
 # Función para el lanzador
 function devlauncher {
-    & "`$env:DEVSCRIPTS_ROOT\launcher.ps1" @args
+    & "`$env:DEVSCRIPTS_ROOT\launcher.exe" @args
 }
 
 # Alias corto

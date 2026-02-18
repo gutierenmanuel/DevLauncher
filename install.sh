@@ -74,7 +74,7 @@ export DEVSCRIPTS_ROOT="$SCRIPT_ROOT"
 export PATH="\$PATH:\$DEVSCRIPTS_ROOT"
 
 # Alias para el lanzador
-alias devlauncher="\$DEVSCRIPTS_ROOT/launcher.sh"
+alias devlauncher="\$DEVSCRIPTS_ROOT/launcher-linux"
 alias dl="devlauncher"
 
 # Función para ejecutar scripts directamente
