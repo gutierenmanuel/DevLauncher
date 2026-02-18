@@ -7,6 +7,34 @@ import (
 	"runtime"
 )
 
+// getScriptCommand returns the command to execute a script
+func getScriptCommand(script Script) *exec.Cmd {
+	var cmd *exec.Cmd
+
+	switch script.Extension {
+	case ".sh":
+		cmd = exec.Command("bash", script.Path)
+	case ".ps1":
+		// Try pwsh first, fallback to powershell
+		if _, err := exec.LookPath("pwsh"); err == nil {
+			cmd = exec.Command("pwsh", "-File", script.Path)
+		} else {
+			cmd = exec.Command("powershell", "-File", script.Path)
+		}
+	case ".bat":
+		if runtime.GOOS == "windows" {
+			cmd = exec.Command("cmd.exe", "/c", script.Path)
+		} else {
+			cmd = exec.Command("cmd.exe", "/c", script.Path) // WSL scenario
+		}
+	default:
+		// Return a command that will fail with a clear error
+		cmd = exec.Command("echo", fmt.Sprintf("unsupported script extension: %s", script.Extension))
+	}
+
+	return cmd
+}
+
 // ExecuteScript executes a script and returns the exit code and error output
 func ExecuteScript(script Script) (int, string) {
 	var cmd *exec.Cmd

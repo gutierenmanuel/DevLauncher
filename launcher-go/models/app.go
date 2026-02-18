@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -449,10 +450,22 @@ func loadScripts(categoryPath string) tea.Cmd {
 }
 
 func executeScript(script Script) tea.Cmd {
-	return func() tea.Msg {
-		exitCode, errorOutput := ExecuteScript(script)
+	return tea.ExecProcess(getScriptCommand(script), func(err error) tea.Msg {
+		exitCode := 0
+		errorOutput := ""
+		
+		if err != nil {
+			// Try to extract exit code from error
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				exitCode = exitErr.ExitCode()
+			} else {
+				exitCode = 1
+				errorOutput = err.Error()
+			}
+		}
+		
 		return scriptExecutedMsg{exitCode: exitCode, errorOutput: errorOutput}
-	}
+	})
 }
 
 // ListAllScripts prints all scripts organized by category
