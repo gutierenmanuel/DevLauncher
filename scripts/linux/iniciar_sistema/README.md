@@ -1,4 +1,4 @@
-# Scripts de Inicialización de Sistema 🖥️
+# 🖥️ Scripts de Inicialización de Sistema
 
 Scripts para configurar un PC nuevo o actualizar configuraciones del sistema.
 

@@ -64,6 +64,21 @@ var (
 
 	IconStyle = lipgloss.NewStyle().
 			Foreground(ColorPurple)
+
+	DirectoryStyle = lipgloss.NewStyle().
+			Foreground(ColorBlue).
+			Bold(true)
+
+	ExecutableStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252"))
+
+	SelectedDirectoryStyle = lipgloss.NewStyle().
+			Foreground(ColorCyan).
+			Bold(true)
+
+	SelectedExecutableStyle = lipgloss.NewStyle().
+			Foreground(ColorGreen).
+			Bold(true)
 )
 
 // DrawBox draws a box with content

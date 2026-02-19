@@ -2,7 +2,6 @@ package models
 
 import (
 	"bufio"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,57 +15,68 @@ type Script struct {
 	Path        string
 	Description string
 	Extension   string
+	Icon        string
 }
 
 // ScanScripts scans a directory for executable scripts
 func ScanScripts(categoryPath string) ([]Script, error) {
-	entries, err := ioutil.ReadDir(categoryPath)
+	entries, err := os.ReadDir(categoryPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var scripts []Script
 	platform := runtime.GOOS
-	
+
 	for _, entry := range entries {
+		entryPath := filepath.Join(categoryPath, entry.Name())
+
 		if entry.IsDir() {
+			if strings.EqualFold(entry.Name(), "lib") {
+				continue
+			}
+
+			scripts = append(scripts, Script{
+				Name:        entry.Name(),
+				Path:        entryPath,
+				Description: folderDescriptionFromREADME(entryPath, entry.Name()),
+				Extension:   ".dir",
+				Icon:        folderIconFromREADME(entryPath, entry.Name()),
+			})
 			continue
 		}
 
 		name := entry.Name()
-		
-		// Skip example scripts
 		if strings.HasPrefix(name, "example_") {
 			continue
 		}
 
 		ext := filepath.Ext(name)
-		
-		// Filter by platform
 		isValid := false
 		if platform == "windows" {
 			isValid = ext == ".ps1" || ext == ".bat"
 		} else {
 			isValid = ext == ".sh"
 		}
-
 		if !isValid {
 			continue
 		}
 
-		scriptPath := filepath.Join(categoryPath, name)
-		description := extractDescription(scriptPath)
-
 		scripts = append(scripts, Script{
 			Name:        name,
-			Path:        scriptPath,
-			Description: description,
+			Path:        entryPath,
+			Description: extractDescription(entryPath),
 			Extension:   ext,
 		})
 	}
 
-	// Sort scripts alphabetically
+	// Sort folders first, then scripts, alphabetically.
 	sort.Slice(scripts, func(i, j int) bool {
+		iDir := scripts[i].Extension == ".dir"
+		jDir := scripts[j].Extension == ".dir"
+		if iDir != jDir {
+			return iDir
+		}
 		return scripts[i].Name < scripts[j].Name
 	})
 

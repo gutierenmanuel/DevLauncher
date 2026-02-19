@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/list"
@@ -27,8 +28,10 @@ type Model struct {
 	state            ViewState
 	rootDir          string
 	staticDir        string
+	scriptsRoot      string
 	categories       []Category
 	currentCategory  Category
+	currentPath      string
 	scripts          []Script
 	currentScript    Script
 	categoryList     list.Model
@@ -66,11 +69,13 @@ func NewModel() Model {
 	}
 
 	staticDir := utils.GetStaticPath(rootDir)
+	scriptsRoot := utils.GetScriptsPath(rootDir)
 
 	return Model{
 		state:       CategoryView,
 		rootDir:     rootDir,
 		staticDir:   staticDir,
+		scriptsRoot: scriptsRoot,
 		commandMode: NewCommandMode(),
 		width:       80,
 		height:      24,
@@ -120,6 +125,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case ".":
 			// '.' goes back one level
 			if m.state == ScriptView {
+				if m.currentPath != "" && m.currentPath != m.currentCategory.Path {
+					m.currentPath = filepath.Dir(m.currentPath)
+					return m, loadScripts(m.currentPath)
+				}
 				m.state = CategoryView
 				return m, nil
 			} else if m.state == ResultView {
@@ -136,6 +145,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc", "0":
 			// Go back one level (or quit from main menu)
 			if m.state == ScriptView {
+				if m.currentPath != "" && m.currentPath != m.currentCategory.Path {
+					m.currentPath = filepath.Dir(m.currentPath)
+					return m, loadScripts(m.currentPath)
+				}
 				m.state = CategoryView
 				return m, nil
 			} else if m.state == ResultView {
@@ -150,14 +163,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Get selected category
 				if i, ok := m.categoryList.SelectedItem().(categoryItem); ok {
 					m.currentCategory = m.categories[i.index]
+					m.currentPath = m.currentCategory.Path
 					m.state = ScriptView
 					m.headerShown = true  // Mark header as shown when leaving CategoryView
-					return m, loadScripts(m.currentCategory.Path)
+					return m, loadScripts(m.currentPath)
 				}
 			} else if m.state == ScriptView && len(m.scripts) > 0 {
 				// Get selected script
 				if i, ok := m.scriptList.SelectedItem().(scriptItem); ok {
 					m.currentScript = m.scripts[i.index]
+					if m.currentScript.Extension == ".dir" {
+						m.currentPath = m.currentScript.Path
+						return m, loadScripts(m.currentPath)
+					}
 					m.state = ExecutingView
 					return m, executeScript(m.currentScript)
 				}
@@ -172,11 +190,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			num := int(msg.String()[0] - '0') - 1
 			if m.state == CategoryView && num >= 0 && num < len(m.categories) {
 				m.currentCategory = m.categories[num]
+				m.currentPath = m.currentCategory.Path
 				m.state = ScriptView
 				m.headerShown = true  // Mark header as shown when leaving CategoryView
-				return m, loadScripts(m.currentCategory.Path)
+				return m, loadScripts(m.currentPath)
 			} else if m.state == ScriptView && num >= 0 && num < len(m.scripts) {
 				m.currentScript = m.scripts[num]
+				if m.currentScript.Extension == ".dir" {
+					m.currentPath = m.currentScript.Path
+					return m, loadScripts(m.currentPath)
+				}
 				m.state = ExecutingView
 				return m, executeScript(m.currentScript)
 			}
@@ -271,12 +294,21 @@ func (m Model) renderCategoriesWithNumbers() string {
 		}
 		num := i + 1
 		selected := m.categoryList.Index() == i
-		
+
+		label := fmt.Sprintf("%s %s/", cat.Icon, cat.Name)
+		prefix := fmt.Sprintf("  [%d] ", num)
+		var styledLabel string
 		if selected {
-			result += ui.SelectedStyle.Render(fmt.Sprintf("  [%d] %s  %s", num, cat.Icon, cat.Name)) + "\n"
+			styledLabel = ui.SelectedDirectoryStyle.Render(label)
+		} else {
+			styledLabel = ui.DirectoryStyle.Render(label)
+		}
+
+		if selected {
+			result += ui.SelectedStyle.Render(prefix) + styledLabel + "\n"
 			result += ui.DimStyle.Render(fmt.Sprintf("      %s (%d script(s))", cat.Description, cat.ScriptCount)) + "\n"
 		} else {
-			result += ui.NormalStyle.Render(fmt.Sprintf("  [%d] %s  %s", num, cat.Icon, cat.Name)) + "\n"
+			result += ui.NormalStyle.Render(prefix) + styledLabel + "\n"
 			result += ui.DimStyle.Render(fmt.Sprintf("      %s (%d script(s))", cat.Description, cat.ScriptCount)) + "\n"
 		}
 	}
@@ -284,19 +316,36 @@ func (m Model) renderCategoriesWithNumbers() string {
 }
 
 func (m Model) renderScriptView() string {
-	breadcrumb := ui.RenderBreadcrumb([]string{"Inicio", m.currentCategory.Name}, m.rootDir)
+	breadcrumbParts := []string{"Inicio", m.currentCategory.Name}
+	if m.currentPath != "" {
+		if rel, err := filepath.Rel(m.currentCategory.Path, m.currentPath); err == nil {
+			rel = filepath.ToSlash(rel)
+			if rel != "." && rel != "" {
+				for _, p := range strings.Split(rel, "/") {
+					if strings.TrimSpace(p) != "" {
+						breadcrumbParts = append(breadcrumbParts, p)
+					}
+				}
+			}
+		}
+	}
+	breadcrumb := ui.RenderBreadcrumb(breadcrumbParts, m.rootDir)
 	
 	content := breadcrumb
-	content += fmt.Sprintf("%s  %s\n", m.currentCategory.Icon, ui.TitleStyle.Render(m.currentCategory.Name))
-	content += ui.DimStyle.Render(fmt.Sprintf("%d script(s) disponible(s)", len(m.scripts))) + "\n"
+	title := filepath.Base(m.currentPath)
+	if title == "." || title == string(filepath.Separator) || title == "" {
+		title = m.currentCategory.Name
+	}
+	content += fmt.Sprintf("%s  %s\n", m.currentCategory.Icon, ui.TitleStyle.Render(title))
+	content += ui.DimStyle.Render(fmt.Sprintf("%d item(s) disponible(s)", len(m.scripts))) + "\n"
 	
 	if len(m.scripts) == 0 {
-		content += ui.ErrorStyle.Render("✗ No se encontraron scripts en esta categoría") + "\n"
+		content += ui.ErrorStyle.Render("✗ No se encontraron elementos en esta carpeta") + "\n"
 	} else {
 		content += m.renderScriptsWithNumbers()
 	}
 	
-	content += "\n" + ui.DimStyle.Render("1-9/↑↓/j/k: navegar  enter/número: ejecutar  :: terminal  ./0/esc: volver  q: salir")
+	content += "\n" + ui.DimStyle.Render("1-9/↑↓/j/k: navegar  enter/número: abrir/ejecutar  :: terminal  ./0/esc: volver  q: salir")
 	
 	if m.commandMode.active {
 		content += m.commandMode.View()
@@ -313,14 +362,39 @@ func (m Model) renderScriptsWithNumbers() string {
 		}
 		num := i + 1
 		selected := m.scriptList.Index() == i
-		
+		label := script.Name
+		isDir := script.Extension == ".dir"
+		if script.Extension == ".dir" {
+			icon := script.Icon
+			if icon == "" {
+				icon = "📂"
+			}
+			label = fmt.Sprintf("%s %s/", icon, script.Name)
+		}
+
+		prefix := fmt.Sprintf("  [%d] ", num)
+		var styledLabel string
+		if isDir {
+			if selected {
+				styledLabel = ui.SelectedDirectoryStyle.Render(label)
+			} else {
+				styledLabel = ui.DirectoryStyle.Render(label)
+			}
+		} else {
+			if selected {
+				styledLabel = ui.SelectedExecutableStyle.Render(label)
+			} else {
+				styledLabel = ui.ExecutableStyle.Render(label)
+			}
+		}
+
 		if selected {
-			result += ui.SelectedStyle.Render(fmt.Sprintf("  [%d] %s", num, script.Name)) + "\n"
+			result += ui.SelectedStyle.Render(prefix) + styledLabel + "\n"
 			if script.Description != "" {
 				result += ui.DimStyle.Render(fmt.Sprintf("      %s", script.Description)) + "\n"
 			}
 		} else {
-			result += ui.NormalStyle.Render(fmt.Sprintf("  [%d] %s", num, script.Name)) + "\n"
+			result += ui.NormalStyle.Render(prefix) + styledLabel + "\n"
 			if script.Description != "" {
 				result += ui.DimStyle.Render(fmt.Sprintf("      %s", script.Description)) + "\n"
 			}

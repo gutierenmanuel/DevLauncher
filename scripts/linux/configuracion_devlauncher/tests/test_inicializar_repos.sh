@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tests para scripts de inicializar_repos
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Test: Verificar que todos los scripts de inicializar_repos existen
 test_init_scripts_exist() {

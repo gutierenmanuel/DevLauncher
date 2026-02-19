@@ -1,4 +1,4 @@
-# build-installer.ps1 - Compila installer/uninstaller para Windows y Linux
+# build-installer.ps1 - Compila installer para Windows y Linux
 # Uso: .\build-installer.ps1 [-SkipLauncher]
 
 param(
@@ -32,8 +32,10 @@ $LauncherLinuxName   = "$VersionNumber-devlauncher-linux"
 $LauncherMacName     = "$VersionNumber-devlauncher-mac"
 $InstallerWinName    = "$VersionNumber-devlauncher-inst.exe"
 $InstallerLinuxName  = "$VersionNumber-devlauncher-inst-linux"
-$UninstallerWinName  = "$VersionNumber-devlauncher-uninst.exe"
-$UninstallerLinuxName = "$VersionNumber-devlauncher-uninst-linux"
+$EmbeddedUninstallerWin = "uninstaller.exe"
+$EmbeddedUninstallerLinux = "uninstaller-linux"
+$LegacyUninstallerWin = "$VersionNumber-devlauncher-uninst.exe"
+$LegacyUninstallerLinux = "$VersionNumber-devlauncher-uninst-linux"
 
 function Write-Color($msg, $color = "White") { Write-Host $msg -ForegroundColor $color }
 function Write-Step($msg)    { Write-Color "==> $msg" Cyan }
@@ -63,6 +65,14 @@ if (-not (Test-Path $OutputsDir)) {
     New-Item -ItemType Directory -Path $OutputsDir -Force | Out-Null
 }
 
+# Remove stale uninstaller artifacts from previous builds
+foreach ($stale in @($LegacyUninstallerWin, $LegacyUninstallerLinux)) {
+    $stalePath = Join-Path $OutputsDir $stale
+    if (Test-Path $stalePath) {
+        Remove-Item $stalePath -Force
+    }
+}
+
 # 1. Optionally rebuild launchers
 if (-not $SkipLauncher) {
     Write-Step "Compilando launchers..."
@@ -83,7 +93,7 @@ foreach ($d in $subdirs) {
     $p = Join-Path $AssetsDir $d
     if (Test-Path $p) { Remove-Item $p -Recurse -Force }
 }
-foreach ($f in @("VERSION.txt","launcher.exe","launcher-linux","launcher-mac")) {
+foreach ($f in @("VERSION.txt","launcher.exe","launcher-linux","launcher-mac","uninstaller.exe","uninstaller-linux")) {
     $p = Join-Path $AssetsDir $f
     if (Test-Path $p) { Remove-Item $p -Force }
 }
@@ -119,28 +129,34 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "go mod tidy falló" }
 } finally { Pop-Location }
 
-# 5. Build Windows (installer + uninstaller)
-Write-Step "Compilando installer.exe y uninstaller.exe (windows/amd64)..."
+# 5. Build embedded uninstallers first (required by go:embed)
+Write-Step "Compilando uninstallers embebidos (windows/linux amd64)..."
 Push-Location $InstallerDir
 try {
     New-WindowsIconResources
     $env:GOOS = "windows"; $env:GOARCH = "amd64"
-    & go build -ldflags="-s -w" -o (Join-Path $OutputsDir $InstallerWinName) .
-    if ($LASTEXITCODE -ne 0) { throw "Build Windows installer falló" }
-    & go build -ldflags="-s -w" -o (Join-Path $OutputsDir $UninstallerWinName) .\cmd\uninstaller\
+    & go build -ldflags="-s -w" -o (Join-Path $AssetsDir $EmbeddedUninstallerWin) .\cmd\uninstaller\
     if ($LASTEXITCODE -ne 0) { throw "Build Windows uninstaller falló" }
+
+    $env:GOOS = "linux"; $env:GOARCH = "amd64"
+    & go build -ldflags="-s -w" -o (Join-Path $AssetsDir $EmbeddedUninstallerLinux) .\cmd\uninstaller\
+    if ($LASTEXITCODE -ne 0) { throw "Build Linux uninstaller falló" }
+
     Remove-Item Env:GOOS, Env:GOARCH -ErrorAction SilentlyContinue
 } finally { Pop-Location }
 
-# 6. Build Linux (installer + uninstaller)
-Write-Step "Compilando installer-linux y uninstaller-linux (linux/amd64)..."
+# 6. Build installers
+Write-Step "Compilando installers (windows/linux amd64)..."
 Push-Location $InstallerDir
 try {
+    $env:GOOS = "windows"; $env:GOARCH = "amd64"
+    & go build -ldflags="-s -w" -o (Join-Path $OutputsDir $InstallerWinName) .
+    if ($LASTEXITCODE -ne 0) { throw "Build Windows installer falló" }
+
     $env:GOOS = "linux"; $env:GOARCH = "amd64"
     & go build -ldflags="-s -w" -o (Join-Path $OutputsDir $InstallerLinuxName) .
     if ($LASTEXITCODE -ne 0) { throw "Build Linux installer falló" }
-    & go build -ldflags="-s -w" -o (Join-Path $OutputsDir $UninstallerLinuxName) .\cmd\uninstaller\
-    if ($LASTEXITCODE -ne 0) { throw "Build Linux uninstaller falló" }
+
     Remove-Item Env:GOOS, Env:GOARCH -ErrorAction SilentlyContinue
 } finally { Pop-Location }
 
@@ -150,7 +166,7 @@ foreach ($d in $subdirs) {
     $p = Join-Path $AssetsDir $d
     if (Test-Path $p) { Remove-Item $p -Recurse -Force }
 }
-foreach ($f in @("VERSION.txt","launcher.exe","launcher-linux","launcher-mac")) {
+foreach ($f in @("VERSION.txt","launcher.exe","launcher-linux","launcher-mac","uninstaller.exe","uninstaller-linux")) {
     $p = Join-Path $AssetsDir $f
     if (Test-Path $p) { Remove-Item $p -Force }
 }
@@ -162,10 +178,11 @@ if (Test-Path $UninstallerSyso) { Remove-Item $UninstallerSyso -Force -ErrorActi
 Write-Color ""
 Write-Success "Build completado."
 Write-Color "  Outputs: $OutputsDir" Cyan
-foreach ($bin in @($InstallerWinName,$InstallerLinuxName,$UninstallerWinName,$UninstallerLinuxName)) {
+foreach ($bin in @($InstallerWinName,$InstallerLinuxName)) {
     $p = Join-Path $OutputsDir $bin
     if (Test-Path $p) {
         $size = (Get-Item $p).Length / 1MB
         Write-Color ("  {0,-20} {1:N1} MB" -f $bin, $size) White
     }
 }
+Write-Color "  Uninstallers se embeben en installer-go/assets y se generan al instalar" Gray

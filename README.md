@@ -60,6 +60,24 @@ Scripts_dev/
 
 **Flujo:** Selecciona categoría → Selecciona script → Ejecuta → Vuelve al menú
 
+### 🏷️ Icono por carpeta (README)
+
+El launcher obtiene el icono de cada carpeta leyendo su `README.md` local.
+
+Regla recomendada:
+
+- La primera línea útil del README debe empezar por emoji/icono.
+- Formato sugerido: `# 🧪 Nombre de la carpeta`.
+
+Ejemplos válidos:
+
+```md
+# 🛠️ Utilidades (Windows)
+# 📦 Instaladores (Linux)
+```
+
+Si no encuentra icono en el README, el launcher usa uno por defecto.
+
 ### 🔧 Manejo Avanzado de Errores
 
 Cuando algo falla, obtienes información completa:

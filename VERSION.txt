@@ -1,1 +1,1 @@
-v0.4.1 - Installer ejecutable + Desinstalador (2026-02-19)
+v0.4.4 - Installer ejecutable + Desinstalador (2026-02-19)

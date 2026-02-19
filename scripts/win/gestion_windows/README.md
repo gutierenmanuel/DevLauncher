@@ -1,4 +1,4 @@
-# Scripts de Gestión de Windows 🪟
+# 🪟 Scripts de Gestión de Windows
 
 Scripts interactivos para monitoreo y administración del sistema Windows, equivalentes a los de `gestion_linux` pero usando PowerShell nativo.
 

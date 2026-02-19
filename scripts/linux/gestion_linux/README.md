@@ -1,4 +1,4 @@
-# Scripts de Gestión de Linux 🐧
+# 🐧 Scripts de Gestión de Linux
 
 Scripts interactivos para monitoreo y administración del sistema Linux.
 

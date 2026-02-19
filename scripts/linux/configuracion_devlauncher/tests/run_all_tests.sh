@@ -20,8 +20,8 @@ echo -e "${BLUE}║           Test Suite - DevScripts Validation              �
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Obtener directorio raíz del proyecto
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Obtener directorio linux (scripts/linux)
+LINUX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Función para ejecutar un test
 run_test() {
@@ -49,7 +49,7 @@ run_test() {
 }
 
 # Ejecutar todos los tests
-for test_file in "$SCRIPT_DIR/tests"/test_*.sh; do
+for test_file in "$LINUX_DIR/configuracion_devlauncher/tests"/test_*.sh; do
     if [ -f "$test_file" ]; then
         run_test "$test_file"
     fi

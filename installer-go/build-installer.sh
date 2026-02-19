@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-installer.sh - Compila installer/uninstaller para Linux y Windows
+# build-installer.sh - Compila installer para Linux y Windows
 # Uso: ./build-installer.sh [--skip-launcher]
 
 set -euo pipefail
@@ -37,12 +37,17 @@ LAUNCHER_LINUX="$VERSION_NUMBER-devlauncher-linux"
 LAUNCHER_MAC="$VERSION_NUMBER-devlauncher-mac"
 INSTALLER_WIN="$VERSION_NUMBER-devlauncher-inst.exe"
 INSTALLER_LINUX="$VERSION_NUMBER-devlauncher-inst-linux"
-UNINSTALLER_WIN="$VERSION_NUMBER-devlauncher-uninst.exe"
-UNINSTALLER_LINUX="$VERSION_NUMBER-devlauncher-uninst-linux"
+EMBED_UNINSTALLER_WIN="uninstaller.exe"
+EMBED_UNINSTALLER_LINUX="uninstaller-linux"
+LEGACY_UNINSTALLER_WIN="$VERSION_NUMBER-devlauncher-uninst.exe"
+LEGACY_UNINSTALLER_LINUX="$VERSION_NUMBER-devlauncher-uninst-linux"
 
 echo "Detected version: $VERSION_NUMBER"
 
 mkdir -p "$OUTPUTS_DIR"
+
+# Remove stale uninstaller artifacts from previous builds
+rm -f "$OUTPUTS_DIR/$LEGACY_UNINSTALLER_WIN" "$OUTPUTS_DIR/$LEGACY_UNINSTALLER_LINUX"
 
 cleanup() {
     rm -f "$INSTALLER_SYSO" "$UNINSTALLER_SYSO"
@@ -69,7 +74,7 @@ step "Preparando assets..."
 for d in scripts static; do
     [[ -d "$ASSETS_DIR/$d" ]] && rm -rf "$ASSETS_DIR/$d"
 done
-for f in VERSION.txt launcher.exe launcher-linux launcher-mac; do
+for f in VERSION.txt launcher.exe launcher-linux launcher-mac uninstaller.exe uninstaller-linux; do
     [[ -f "$ASSETS_DIR/$f" ]] && rm -f "$ASSETS_DIR/$f"
 done
 
@@ -94,13 +99,8 @@ step "Ejecutando go mod tidy..."
 cd "$INSTALLER_DIR"
 go mod tidy
 
-# 5. Build Linux installer + uninstaller
-step "Compilando installer-linux y uninstaller-linux (linux/amd64)..."
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o "$OUTPUTS_DIR/$INSTALLER_LINUX" .
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o "$OUTPUTS_DIR/$UNINSTALLER_LINUX" ./cmd/uninstaller
-
-# 6. Build Windows installer + uninstaller (cross-compile)
-step "Compilando installer.exe y uninstaller.exe (windows/amd64)..."
+# 5. Build embedded uninstallers first (required by go:embed)
+step "Compilando uninstallers embebidos (windows/linux amd64)..."
 if [[ -f "$ICON_PATH" ]]; then
     go run github.com/akavel/rsrc@latest -ico "$ICON_PATH" -o "$INSTALLER_SYSO" >/dev/null 2>&1
     go run github.com/akavel/rsrc@latest -ico "$ICON_PATH" -o "$UNINSTALLER_SYSO" >/dev/null 2>&1
@@ -108,15 +108,20 @@ if [[ -f "$ICON_PATH" ]]; then
 else
     warn "Icono no encontrado: $ICON_PATH"
 fi
+GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o "$ASSETS_DIR/$EMBED_UNINSTALLER_WIN" ./cmd/uninstaller
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o "$ASSETS_DIR/$EMBED_UNINSTALLER_LINUX" ./cmd/uninstaller
+
+# 6. Build installers
+step "Compilando installers (windows/linux amd64)..."
 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o "$OUTPUTS_DIR/$INSTALLER_WIN" .
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o "$OUTPUTS_DIR/$UNINSTALLER_WIN" ./cmd/uninstaller
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o "$OUTPUTS_DIR/$INSTALLER_LINUX" .
 
 # 7. Clean assets
 step "Limpiando assets temporales..."
 for d in scripts static; do
     [[ -d "$ASSETS_DIR/$d" ]] && rm -rf "$ASSETS_DIR/$d"
 done
-for f in VERSION.txt launcher.exe launcher-linux launcher-mac; do
+for f in VERSION.txt launcher.exe launcher-linux launcher-mac uninstaller.exe uninstaller-linux; do
     [[ -f "$ASSETS_DIR/$f" ]] && rm -f "$ASSETS_DIR/$f"
 done
 
@@ -124,6 +129,7 @@ done
 echo ""
 success "Build completado."
 echo "  Outputs: $OUTPUTS_DIR"
-for bin in "$INSTALLER_LINUX" "$INSTALLER_WIN" "$UNINSTALLER_LINUX" "$UNINSTALLER_WIN"; do
+for bin in "$INSTALLER_LINUX" "$INSTALLER_WIN"; do
     [[ -f "$OUTPUTS_DIR/$bin" ]] && printf "  %-20s %.1f MB\n" "$bin" "$(du -m "$OUTPUTS_DIR/$bin" | cut -f1)"
 done
+echo "  Uninstallers se embeben en installer-go/assets y se generan al instalar"

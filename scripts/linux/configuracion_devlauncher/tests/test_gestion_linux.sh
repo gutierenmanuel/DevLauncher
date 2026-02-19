@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tests para scripts de gestion_linux
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Test 1: control_procesos.sh existe y tiene permisos
 test_control_procesos() {

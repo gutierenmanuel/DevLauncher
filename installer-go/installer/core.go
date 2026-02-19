@@ -159,6 +159,8 @@ func mapAssetPath(embPath, destDir string) string {
 	// assets/launcher.exe → {destDir}/launcher.exe  (windows)
 	// assets/launcher-linux → {destDir}/launcher    (linux)
 	// assets/launcher-mac → {destDir}/launcher      (darwin)
+	// assets/uninstaller.exe → {destDir}/uninstaller.exe (windows)
+	// assets/uninstaller-linux → {destDir}/uninstaller   (linux)
 	rel := strings.TrimPrefix(embPath, "assets/")
 
 	switch {
@@ -179,13 +181,23 @@ func mapAssetPath(embPath, destDir string) string {
 			return filepath.Join(destDir, "launcher")
 		}
 		return ""
+	case rel == "uninstaller.exe":
+		if runtime.GOOS == "windows" {
+			return filepath.Join(destDir, "uninstaller.exe")
+		}
+		return ""
+	case rel == "uninstaller-linux":
+		if runtime.GOOS == "linux" {
+			return filepath.Join(destDir, "uninstaller")
+		}
+		return ""
 	}
 	return ""
 }
 
 func isExecutable(path string) bool {
 	base := filepath.Base(path)
-	return base == "launcher.exe" || base == "launcher-linux" || base == "launcher-mac"
+	return base == "launcher.exe" || base == "launcher-linux" || base == "launcher-mac" || base == "uninstaller.exe" || base == "uninstaller-linux"
 }
 
 // GetLauncherPath returns the launcher executable path inside installDir for current OS.
