@@ -1,3 +1,1 @@
-v1.4.0 - Header Único (2026-02-18)
-
-Mejora UX: Header ASCII solo se muestra una vez al inicio
+v0.4.0 - Installer ejecutable + Desinstalador (2026-02-19)
