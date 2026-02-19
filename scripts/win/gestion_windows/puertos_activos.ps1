@@ -231,7 +231,7 @@ function Show-NetworkStats {
     Write-Host ""
 
     Get-NetAdapter | Where-Object { $_.Status -eq "Up" } |
-        Select-Object Name, @{Label="Velocidad";Expression={"$([math]::Round($_.LinkSpeed/1MB,0)) Mbps"}}, MacAddress |
+        Select-Object Name, @{Label="Velocidad";Expression={$_.LinkSpeed}}, MacAddress |
         Format-Table -AutoSize
 
     Write-Host "${Bold}Direcciones IP:${NC}"

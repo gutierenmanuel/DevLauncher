@@ -162,7 +162,7 @@ function Show-FullInfo {
     Write-Host "${Cyan}═══ Red ═══${NC}"
     foreach ($adapter in $net) {
         $ip = (Get-NetIPAddress -InterfaceIndex $adapter.InterfaceIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue).IPAddress
-        if ($ip) { Write-Host "  $($adapter.Name): $ip ($([math]::Round($adapter.LinkSpeed/1MB,0)) Mbps)" }
+        if ($ip) { Write-Host "  $($adapter.Name): $ip ($($adapter.LinkSpeed))" }
     }
     Write-Host ""
 
@@ -273,7 +273,7 @@ function Show-NetworkInfo {
         Write-Host "    IPv4:  ${Cyan}$(if ($ip)  {$ip}  else {'N/A'})${NC}"
         Write-Host "    IPv6:  ${Gray}$(if ($ip6) {$ip6} else {'N/A'})${NC}"
         Write-Host "    MAC:   $($_.MacAddress)"
-        Write-Host "    Speed: $([math]::Round($_.LinkSpeed/1MB,0)) Mbps"
+        Write-Host "    Speed: $($_.LinkSpeed)"
     }
 
     Write-Host ""
