@@ -118,3 +118,4 @@ if ($itemsRemoved -eq 0) {
 
 Write-Host "${Purple}════════════════════════════════════════════════════════════${NC}"
 Write-Host ""
+Read-Host "Presiona Enter para volver al launcher..."

@@ -1,6 +1,8 @@
 # Script de utilidades - Información del sistema
 # Muestra información detallada del sistema Windows
 
+Clear-Host
+
 # Colores
 $Green = "`e[32m"
 $Blue = "`e[34m"
@@ -102,3 +104,4 @@ foreach ($tool in $tools) {
 Write-Host ""
 Write-Host "${Purple}════════════════════════════════════════════════════════════${NC}"
 Write-Host ""
+Read-Host "Presiona Enter para volver al launcher..."
