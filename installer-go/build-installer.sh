@@ -11,7 +11,6 @@ OUTPUTS_DIR="$ROOT/outputs"
 ICON_PATH="$ROOT/static/devL.ico"
 VERSION_FILE="$ROOT/VERSION.txt"
 INSTALLER_SYSO="$INSTALLER_DIR/rsrc_windows_amd64.syso"
-UNINSTALLER_SYSO="$INSTALLER_DIR/cmd/uninstaller/rsrc_windows_amd64.syso"
 
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; RESET='\033[0m'
 
@@ -37,8 +36,6 @@ LAUNCHER_LINUX="$VERSION_NUMBER-devlauncher-linux"
 LAUNCHER_MAC="$VERSION_NUMBER-devlauncher-mac"
 INSTALLER_WIN="$VERSION_NUMBER-devlauncher-inst.exe"
 INSTALLER_LINUX="$VERSION_NUMBER-devlauncher-inst-linux"
-EMBED_UNINSTALLER_WIN="uninstaller.exe"
-EMBED_UNINSTALLER_LINUX="uninstaller-linux"
 LEGACY_UNINSTALLER_WIN="$VERSION_NUMBER-devlauncher-uninst.exe"
 LEGACY_UNINSTALLER_LINUX="$VERSION_NUMBER-devlauncher-uninst-linux"
 
@@ -50,7 +47,7 @@ mkdir -p "$OUTPUTS_DIR"
 rm -f "$OUTPUTS_DIR/$LEGACY_UNINSTALLER_WIN" "$OUTPUTS_DIR/$LEGACY_UNINSTALLER_LINUX"
 
 cleanup() {
-    rm -f "$INSTALLER_SYSO" "$UNINSTALLER_SYSO"
+    rm -f "$INSTALLER_SYSO"
 }
 trap cleanup EXIT
 
@@ -69,61 +66,55 @@ if [[ $SKIP_LAUNCHER -eq 0 ]]; then
     fi
 fi
 
-# 2. Clean old assets
-step "Preparando assets..."
-for d in scripts static; do
-    [[ -d "$ASSETS_DIR/$d" ]] && rm -rf "$ASSETS_DIR/$d"
-done
-for f in VERSION.txt launcher.exe launcher-linux launcher-mac uninstaller.exe uninstaller-linux; do
-    [[ -f "$ASSETS_DIR/$f" ]] && rm -f "$ASSETS_DIR/$f"
-done
+clear_assets() {
+    for d in scripts static; do
+        [[ -d "$ASSETS_DIR/$d" ]] && rm -rf "$ASSETS_DIR/$d"
+    done
+    for f in VERSION.txt launcher.exe launcher-linux launcher-mac uninstaller.exe uninstaller-linux uninstaller.sh uninstaller.ps1; do
+        [[ -f "$ASSETS_DIR/$f" ]] && rm -f "$ASSETS_DIR/$f"
+    done
+}
 
-# 3. Copy assets
-step "Copiando assets..."
-cp -r "$ROOT/scripts" "$ASSETS_DIR/scripts"
-cp -r "$ROOT/static"  "$ASSETS_DIR/static"
-cp "$ROOT/VERSION.txt" "$ASSETS_DIR/VERSION.txt"
-for pair in "$LAUNCHER_WIN:launcher.exe" "$LAUNCHER_LINUX:launcher-linux" "$LAUNCHER_MAC:launcher-mac"; do
-    src="${pair%%:*}"
-    dest="${pair##*:}"
-    if [[ -f "$OUTPUTS_DIR/$src" ]]; then
-        cp "$OUTPUTS_DIR/$src" "$ASSETS_DIR/$dest"
-        echo "  Copiado: $src -> $dest"
-    else
-        warn "No encontrado en outputs: $src"
+prepare_assets_for_target() {
+    local launcher_src="$1"
+    local launcher_dest="$2"
+    step "Preparando assets para $launcher_dest..."
+    clear_assets
+    cp -r "$ROOT/scripts" "$ASSETS_DIR/scripts"
+    cp -r "$ROOT/static" "$ASSETS_DIR/static"
+    cp "$ROOT/VERSION.txt" "$ASSETS_DIR/VERSION.txt"
+    if [[ ! -f "$OUTPUTS_DIR/$launcher_src" ]]; then
+        echo "ERROR: launcher no encontrado en outputs: $launcher_src"
+        exit 1
     fi
-done
+    cp "$OUTPUTS_DIR/$launcher_src" "$ASSETS_DIR/$launcher_dest"
+    echo "  Copiado: $launcher_src -> $launcher_dest"
+}
 
 # 4. go mod tidy
 step "Ejecutando go mod tidy..."
 cd "$INSTALLER_DIR"
 go mod tidy
 
-# 5. Build embedded uninstallers first (required by go:embed)
-step "Compilando uninstallers embebidos (windows/linux amd64)..."
+# 5. Build Windows installer with Windows-only launcher asset
+step "Compilando installer Windows (assets Windows only)..."
+prepare_assets_for_target "$LAUNCHER_WIN" "launcher.exe"
 if [[ -f "$ICON_PATH" ]]; then
     go run github.com/akavel/rsrc@latest -ico "$ICON_PATH" -o "$INSTALLER_SYSO" >/dev/null 2>&1
-    go run github.com/akavel/rsrc@latest -ico "$ICON_PATH" -o "$UNINSTALLER_SYSO" >/dev/null 2>&1
-    echo "  Icono aplicado a installer.exe y uninstaller.exe"
+    echo "  Icono aplicado a installer.exe"
 else
     warn "Icono no encontrado: $ICON_PATH"
 fi
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o "$ASSETS_DIR/$EMBED_UNINSTALLER_WIN" ./cmd/uninstaller
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o "$ASSETS_DIR/$EMBED_UNINSTALLER_LINUX" ./cmd/uninstaller
+GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -trimpath -o "$OUTPUTS_DIR/$INSTALLER_WIN" .
 
-# 6. Build installers
-step "Compilando installers (windows/linux amd64)..."
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o "$OUTPUTS_DIR/$INSTALLER_WIN" .
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o "$OUTPUTS_DIR/$INSTALLER_LINUX" .
+# 6. Build Linux installer with Linux-only launcher asset
+step "Compilando installer Linux (assets Linux only)..."
+prepare_assets_for_target "$LAUNCHER_LINUX" "launcher-linux"
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -trimpath -o "$OUTPUTS_DIR/$INSTALLER_LINUX" .
 
 # 7. Clean assets
 step "Limpiando assets temporales..."
-for d in scripts static; do
-    [[ -d "$ASSETS_DIR/$d" ]] && rm -rf "$ASSETS_DIR/$d"
-done
-for f in VERSION.txt launcher.exe launcher-linux launcher-mac uninstaller.exe uninstaller-linux; do
-    [[ -f "$ASSETS_DIR/$f" ]] && rm -f "$ASSETS_DIR/$f"
-done
+clear_assets
 
 # 8. Report
 echo ""
@@ -132,4 +123,4 @@ echo "  Outputs: $OUTPUTS_DIR"
 for bin in "$INSTALLER_LINUX" "$INSTALLER_WIN"; do
     [[ -f "$OUTPUTS_DIR/$bin" ]] && printf "  %-20s %.1f MB\n" "$bin" "$(du -m "$OUTPUTS_DIR/$bin" | cut -f1)"
 done
-echo "  Uninstallers se embeben en installer-go/assets y se generan al instalar"
+echo "  Uninstaller ligero generado en instalación (script local)"

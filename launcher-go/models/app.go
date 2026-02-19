@@ -29,6 +29,7 @@ type Model struct {
 	rootDir          string
 	staticDir        string
 	scriptsRoot      string
+	currentVersion   string
 	categories       []Category
 	currentCategory  Category
 	currentPath      string
@@ -70,12 +71,14 @@ func NewModel() Model {
 
 	staticDir := utils.GetStaticPath(rootDir)
 	scriptsRoot := utils.GetScriptsPath(rootDir)
+	currentVersion := readLauncherVersion(rootDir)
 
 	return Model{
 		state:       CategoryView,
 		rootDir:     rootDir,
 		staticDir:   staticDir,
 		scriptsRoot: scriptsRoot,
+		currentVersion: currentVersion,
 		commandMode: NewCommandMode(),
 		width:       80,
 		height:      24,
@@ -257,7 +260,7 @@ func (m *Model) View() string {
 func (m *Model) renderCategoryView() string {
 	// Load and cache header on first render
 	if m.header == "" && len(m.categories) > 0 {
-		m.header = ui.LoadASCIIArt(m.staticDir)
+		m.header = decorateHeaderWithVersion(ui.LoadASCIIArt(m.staticDir), m.currentVersion)
 	}
 	
 	// Show header while in CategoryView (until user navigates away)
@@ -482,6 +485,53 @@ func (m Model) createScriptList() list.Model {
 	l.SetFilteringEnabled(false)
 	
 	return l
+}
+
+func readLauncherVersion(rootDir string) string {
+	versionFile := filepath.Join(rootDir, "VERSION.txt")
+	data, err := os.ReadFile(versionFile)
+	if err != nil {
+		return ""
+	}
+	line := strings.SplitN(strings.TrimSpace(string(data)), "\n", 2)[0]
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return ""
+	}
+	return fields[0]
+}
+
+func decorateHeaderWithVersion(header, version string) string {
+	version = strings.TrimSpace(version)
+	if header == "" || version == "" {
+		return header
+	}
+
+	lines := strings.Split(header, "\n")
+	last := -1
+	maxWidth := 0
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" {
+			last = i
+		}
+		if w := len([]rune(line)); w > maxWidth {
+			maxWidth = w
+		}
+	}
+	if last == -1 {
+		return header
+	}
+
+	line := lines[last]
+	lineWidth := len([]rune(line))
+	padding := (maxWidth - lineWidth) + 2
+	if padding < 2 {
+		padding = 2
+	}
+
+	lines[last] = line + strings.Repeat(" ", padding) + ui.ErrorStyle.Render(version)
+	return strings.Join(lines, "\n")
 }
 
 // Commands

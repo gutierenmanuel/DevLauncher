@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 
 $installDir = Join-Path $HOME ".devscripts"
-$uninstaller = Join-Path $installDir "uninstaller.exe"
+$uninstaller = Join-Path $installDir "uninstaller.ps1"
 
 if (-not (Test-Path $uninstaller)) {
     Write-Host "No se encontró el uninstaller instalado en: $uninstaller"
@@ -20,4 +20,8 @@ if ($confirm -notmatch '^[sS]$') {
     exit 0
 }
 
-Start-Process -FilePath $uninstaller -Wait
+if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+    & pwsh -ExecutionPolicy Bypass -File $uninstaller
+} else {
+    & powershell -ExecutionPolicy Bypass -File $uninstaller
+}

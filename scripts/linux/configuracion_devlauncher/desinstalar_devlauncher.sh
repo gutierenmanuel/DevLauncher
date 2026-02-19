@@ -5,7 +5,7 @@
 set -e
 
 INSTALL_DIR="$HOME/.devscripts"
-UNINSTALLER="$INSTALL_DIR/uninstaller"
+UNINSTALLER="$INSTALL_DIR/uninstaller.sh"
 
 if [ ! -f "$UNINSTALLER" ]; then
     echo "No se encontró el uninstaller instalado en: $UNINSTALLER"
@@ -22,4 +22,4 @@ if [[ ! "$confirm" =~ ^[sS]$ ]]; then
 fi
 
 chmod +x "$UNINSTALLER"
-"$UNINSTALLER"
+bash "$UNINSTALLER"

@@ -7,6 +7,7 @@ Herramientas de mantenimiento local del launcher: actualizaciones locales, desin
 - `buscar_actualizaciones.sh`
 - `desinstalar_devlauncher.sh`
 - `tests_de_scripts.sh`
+- `version_actual.sh`
 - `tests/` (suite de validación de scripts)
 
 ## 🚀 Uso

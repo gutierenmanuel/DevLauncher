@@ -167,6 +167,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.phase = PhaseError
 			return m, nil
 		}
+		if err := installer.GenerateUninstaller(m.installDir); err != nil {
+			m.err = err
+			m.phase = PhaseError
+			return m, nil
+		}
 		m.phase = PhaseShellConfig
 		return m, tea.Batch(m.spinner.Tick, doShellConfig(m.installDir))
 
