@@ -1,0 +1,8 @@
+# installer-go/assets/ is populated at build time - ignore generated content
+installer-go/assets/scripts/
+installer-go/assets/static/
+installer-go/assets/VERSION.txt
+installer-go/assets/launcher.exe
+installer-go/assets/launcher-linux
+installer-go/assets/launcher-mac
+installer-go/assets/placeholder
