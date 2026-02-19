@@ -6,7 +6,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -92,8 +91,6 @@ type shortcutDoneMsg struct {
 	path string
 	err  error
 }
-
-type autoQuitMsg struct{}
 
 // NewModel creates a new installer Model.
 func NewModel(assets embed.FS) Model {
@@ -188,7 +185,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.prepareLaunch()
 		m.phase = PhaseDone
-		return m, tea.Tick(700*time.Millisecond, func(time.Time) tea.Msg { return autoQuitMsg{} })
+		return m, nil
 
 	case shortcutDoneMsg:
 		if msg.err != nil {
@@ -199,12 +196,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.shortcutPath = msg.path
 		m.prepareLaunch()
 		m.phase = PhaseDone
-		return m, tea.Tick(700*time.Millisecond, func(time.Time) tea.Msg { return autoQuitMsg{} })
-
-	case autoQuitMsg:
-		if m.phase == PhaseDone {
-			return m, tea.Quit
-		}
 		return m, nil
 	}
 
@@ -240,7 +231,15 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-	case PhaseDone, PhaseError:
+	case PhaseDone:
+		switch msg.String() {
+		case "enter":
+			return m, tea.Quit
+		case "q", "ctrl+c":
+			return m, tea.Quit
+		}
+
+	case PhaseError:
 		return m, tea.Quit
 	}
 
@@ -462,10 +461,10 @@ func (m Model) viewDone() string {
 	sb.WriteString(NormalStyle.Render("  devlauncher / dl  →  Lanzador interactivo") + "\n")
 	sb.WriteString(NormalStyle.Render("  devscript <nom>   →  Ejecutar script directo") + "\n\n")
 	if m.launchAfterDone {
-		sb.WriteString(CyanStyle.Render("Iniciando DevLauncher...") + "\n")
-		sb.WriteString(DimStyle.Render("Se abrirá en esta misma terminal."))
+		sb.WriteString(CyanStyle.Render("Pulsa Enter para continuar") + "\n")
+		sb.WriteString(DimStyle.Render("Al continuar, se iniciará DevLauncher automáticamente."))
 	} else {
-		sb.WriteString(DimStyle.Render("Presiona cualquier tecla para salir"))
+		sb.WriteString(DimStyle.Render("Pulsa Enter para salir"))
 	}
 
 	return m.center(BoxStyle.Render(sb.String()))

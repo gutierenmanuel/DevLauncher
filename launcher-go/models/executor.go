@@ -8,7 +8,7 @@ import (
 )
 
 // getScriptCommand returns the command to execute a script
-func getScriptCommand(script Script) *exec.Cmd {
+func getScriptCommand(script Script, workingDir string) *exec.Cmd {
 	var cmd *exec.Cmd
 
 	switch script.Extension {
@@ -32,11 +32,15 @@ func getScriptCommand(script Script) *exec.Cmd {
 		cmd = exec.Command("echo", fmt.Sprintf("unsupported script extension: %s", script.Extension))
 	}
 
+	if workingDir != "" {
+		cmd.Dir = workingDir
+	}
+
 	return cmd
 }
 
 // ExecuteScript executes a script and returns the exit code and error output
-func ExecuteScript(script Script) (int, string) {
+func ExecuteScript(script Script, workingDir string) (int, string) {
 	var cmd *exec.Cmd
 
 	switch script.Extension {
@@ -57,6 +61,10 @@ func ExecuteScript(script Script) (int, string) {
 		}
 	default:
 		return 1, fmt.Sprintf("unsupported script extension: %s", script.Extension)
+	}
+
+	if workingDir != "" {
+		cmd.Dir = workingDir
 	}
 
 	// Set stdout to terminal, capture stderr

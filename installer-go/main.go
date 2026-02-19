@@ -18,8 +18,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	if fm, ok := finalModel.(*tui.Model); ok && fm.ShouldLaunch() {
-		cmd := exec.Command(fm.LaunchPath())
+	shouldLaunch := false
+	launchPath := ""
+
+	if fm, ok := finalModel.(*tui.Model); ok {
+		shouldLaunch = fm.ShouldLaunch()
+		launchPath = fm.LaunchPath()
+	} else if fm, ok := finalModel.(tui.Model); ok {
+		shouldLaunch = fm.ShouldLaunch()
+		launchPath = fm.LaunchPath()
+	}
+
+	if shouldLaunch {
+		cmd := exec.Command(launchPath)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

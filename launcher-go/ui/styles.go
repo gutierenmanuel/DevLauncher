@@ -79,6 +79,10 @@ var (
 	SelectedExecutableStyle = lipgloss.NewStyle().
 			Foreground(ColorGreen).
 			Bold(true)
+
+	HeaderVersionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#c0392b")).
+			Bold(true)
 )
 
 // DrawBox draws a box with content

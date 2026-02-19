@@ -29,6 +29,8 @@ type Model struct {
 	rootDir          string
 	staticDir        string
 	scriptsRoot      string
+	launchDir        string
+	runDir           string
 	currentVersion   string
 	categories       []Category
 	currentCategory  Category
@@ -52,6 +54,10 @@ type Model struct {
 func NewModel() Model {
 	// Get root directory - try multiple strategies
 	var rootDir string
+	launchDir := ""
+	if cwd, err := os.Getwd(); err == nil {
+		launchDir = cwd
+	}
 	
 	// Strategy 1: Check if scripts/ exists in parent of current dir
 	if cwd, err := os.Getwd(); err == nil {
@@ -68,6 +74,9 @@ func NewModel() Model {
 		realPath, _ := filepath.EvalSymlinks(execPath)
 		rootDir = filepath.Dir(realPath)
 	}
+	if strings.TrimSpace(launchDir) == "" {
+		launchDir = rootDir
+	}
 
 	staticDir := utils.GetStaticPath(rootDir)
 	scriptsRoot := utils.GetScriptsPath(rootDir)
@@ -78,6 +87,8 @@ func NewModel() Model {
 		rootDir:     rootDir,
 		staticDir:   staticDir,
 		scriptsRoot: scriptsRoot,
+		launchDir:   launchDir,
+		runDir:      launchDir,
 		currentVersion: currentVersion,
 		commandMode: NewCommandMode(),
 		width:       80,
@@ -96,6 +107,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.commandMode.SetSize(msg.Width, msg.Height)
+		return m, nil
+
+	case tea.MouseMsg:
+		if m.commandMode.active {
+			return m, m.commandMode.HandleMouse(msg)
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -106,6 +124,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.commandMode.active = false
 				m.commandMode.input.SetValue("")
 				m.commandMode.output = ""
+				return m, nil
+			case "tab":
+				m.commandMode.AutoComplete(m)
 				return m, nil
 			case "enter":
 				cmd := m.commandMode.input.Value()
@@ -122,6 +143,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case ":":
 			// Activate command mode with ':'
 			m.commandMode.active = true
+			m.commandMode.SetSize(m.width, m.height)
 			m.commandMode.input.Focus()
 			return m, nil
 		
@@ -180,7 +202,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, loadScripts(m.currentPath)
 					}
 					m.state = ExecutingView
-					return m, executeScript(m.currentScript)
+					return m, executeScript(m.currentScript, m.runDir)
 				}
 			} else if m.state == ResultView {
 				// Return to script view after seeing result
@@ -204,7 +226,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, loadScripts(m.currentPath)
 				}
 				m.state = ExecutingView
-				return m, executeScript(m.currentScript)
+				return m, executeScript(m.currentScript, m.runDir)
 			}
 		}
 
@@ -269,7 +291,7 @@ func (m *Model) renderCategoryView() string {
 		header = m.header
 	}
 	
-	breadcrumb := ui.RenderBreadcrumb([]string{"Inicio"}, m.rootDir)
+	breadcrumb := ui.RenderBreadcrumb([]string{"Inicio"}, m.runDir)
 	
 	content := header + breadcrumb
 	
@@ -332,7 +354,7 @@ func (m Model) renderScriptView() string {
 			}
 		}
 	}
-	breadcrumb := ui.RenderBreadcrumb(breadcrumbParts, m.rootDir)
+	breadcrumb := ui.RenderBreadcrumb(breadcrumbParts, m.runDir)
 	
 	content := breadcrumb
 	title := filepath.Base(m.currentPath)
@@ -415,7 +437,7 @@ func (m Model) renderExecutingView() string {
 }
 
 func (m Model) renderResultView() string {
-	breadcrumb := ui.RenderBreadcrumb([]string{"Inicio", m.currentCategory.Name}, m.rootDir)
+	breadcrumb := ui.RenderBreadcrumb([]string{"Inicio", m.currentCategory.Name}, m.runDir)
 	
 	content := breadcrumb
 	
@@ -530,7 +552,7 @@ func decorateHeaderWithVersion(header, version string) string {
 		padding = 2
 	}
 
-	lines[last] = line + strings.Repeat(" ", padding) + ui.ErrorStyle.Render(version)
+	lines[last] = line + strings.Repeat(" ", padding) + ui.HeaderVersionStyle.Render(version)
 	return strings.Join(lines, "\n")
 }
 
@@ -573,8 +595,8 @@ func loadScripts(categoryPath string) tea.Cmd {
 	}
 }
 
-func executeScript(script Script) tea.Cmd {
-	return tea.ExecProcess(getScriptCommand(script), func(err error) tea.Msg {
+func executeScript(script Script, workingDir string) tea.Cmd {
+	return tea.ExecProcess(getScriptCommand(script, workingDir), func(err error) tea.Msg {
 		exitCode := 0
 		errorOutput := ""
 		
