@@ -322,6 +322,7 @@ func (m Model) renderCategoriesWithNumbers() string {
 
 		label := fmt.Sprintf("%s %s/", cat.Icon, cat.Name)
 		prefix := fmt.Sprintf("  [%d] ", num)
+		counts := formatCategoryCounts(cat.DirCount, cat.ScriptCount)
 		var styledLabel string
 		if selected {
 			styledLabel = ui.SelectedDirectoryStyle.Render(label)
@@ -330,14 +331,39 @@ func (m Model) renderCategoriesWithNumbers() string {
 		}
 
 		if selected {
-			result += ui.SelectedStyle.Render(prefix) + styledLabel + "\n"
-			result += ui.DimStyle.Render(fmt.Sprintf("      %s (%d script(s))", cat.Description, cat.ScriptCount)) + "\n"
+			line := ui.SelectedStyle.Render(prefix) + styledLabel
+			if counts != "" {
+				line += "      " + ui.CountStyle.Render(counts)
+			}
+			result += line + "\n"
+			if strings.TrimSpace(cat.Description) != "" {
+				result += ui.DimStyle.Render(fmt.Sprintf("      %s", cat.Description)) + "\n"
+			}
 		} else {
-			result += ui.NormalStyle.Render(prefix) + styledLabel + "\n"
-			result += ui.DimStyle.Render(fmt.Sprintf("      %s (%d script(s))", cat.Description, cat.ScriptCount)) + "\n"
+			line := ui.NormalStyle.Render(prefix) + styledLabel
+			if counts != "" {
+				line += "      " + ui.CountStyle.Render(counts)
+			}
+			result += line + "\n"
+			if strings.TrimSpace(cat.Description) != "" {
+				result += ui.DimStyle.Render(fmt.Sprintf("      %s", cat.Description)) + "\n"
+			}
 		}
 	}
 	return result
+}
+
+func formatCategoryCounts(dirCount, scriptCount int) string {
+	if dirCount <= 0 && scriptCount <= 0 {
+		return ""
+	}
+	if dirCount <= 0 {
+		return fmt.Sprintf("%d scripts", scriptCount)
+	}
+	if scriptCount <= 0 {
+		return fmt.Sprintf("%d dirs", dirCount)
+	}
+	return fmt.Sprintf("%d dirs · %d scripts", dirCount, scriptCount)
 }
 
 func (m Model) renderScriptView() string {
@@ -389,12 +415,14 @@ func (m Model) renderScriptsWithNumbers() string {
 		selected := m.scriptList.Index() == i
 		label := script.Name
 		isDir := script.Extension == ".dir"
+		counts := ""
 		if script.Extension == ".dir" {
 			icon := script.Icon
 			if icon == "" {
 				icon = "📂"
 			}
 			label = fmt.Sprintf("%s %s/", icon, script.Name)
+			counts = formatCategoryCounts(script.DirCount, script.ScriptCount)
 		}
 
 		prefix := fmt.Sprintf("  [%d] ", num)
@@ -414,12 +442,20 @@ func (m Model) renderScriptsWithNumbers() string {
 		}
 
 		if selected {
-			result += ui.SelectedStyle.Render(prefix) + styledLabel + "\n"
+			line := ui.SelectedStyle.Render(prefix) + styledLabel
+			if counts != "" {
+				line += "      " + ui.CountStyle.Render(counts)
+			}
+			result += line + "\n"
 			if script.Description != "" {
 				result += ui.DimStyle.Render(fmt.Sprintf("      %s", script.Description)) + "\n"
 			}
 		} else {
-			result += ui.NormalStyle.Render(prefix) + styledLabel + "\n"
+			line := ui.NormalStyle.Render(prefix) + styledLabel
+			if counts != "" {
+				line += "      " + ui.CountStyle.Render(counts)
+			}
+			result += line + "\n"
 			if script.Description != "" {
 				result += ui.DimStyle.Render(fmt.Sprintf("      %s", script.Description)) + "\n"
 			}

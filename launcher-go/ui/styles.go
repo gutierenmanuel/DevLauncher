@@ -80,6 +80,9 @@ var (
 			Foreground(ColorGreen).
 			Bold(true)
 
+	CountStyle = lipgloss.NewStyle().
+			Foreground(ColorDimGray)
+
 	HeaderVersionStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#c0392b")).
 			Bold(true)

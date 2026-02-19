@@ -16,6 +16,8 @@ type Script struct {
 	Description string
 	Extension   string
 	Icon        string
+	DirCount    int
+	ScriptCount int
 }
 
 // ScanScripts scans a directory for executable scripts
@@ -36,12 +38,16 @@ func ScanScripts(categoryPath string) ([]Script, error) {
 				continue
 			}
 
+			dirCount, scriptCount := countImmediateItems(entryPath, platform)
+
 			scripts = append(scripts, Script{
 				Name:        entry.Name(),
 				Path:        entryPath,
 				Description: folderDescriptionFromREADME(entryPath, entry.Name()),
 				Extension:   ".dir",
 				Icon:        folderIconFromREADME(entryPath, entry.Name()),
+				DirCount:    dirCount,
+				ScriptCount: scriptCount,
 			})
 			continue
 		}
@@ -81,6 +87,42 @@ func ScanScripts(categoryPath string) ([]Script, error) {
 	})
 
 	return scripts, nil
+}
+
+func countImmediateItems(folderPath, platform string) (int, int) {
+	entries, err := os.ReadDir(folderPath)
+	if err != nil {
+		return 0, 0
+	}
+
+	dirCount := 0
+	scriptCount := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			if !strings.EqualFold(entry.Name(), "lib") {
+				dirCount++
+			}
+			continue
+		}
+
+		name := entry.Name()
+		if strings.HasPrefix(name, "example_") {
+			continue
+		}
+
+		ext := filepath.Ext(name)
+		if platform == "windows" {
+			if ext == ".ps1" || ext == ".bat" {
+				scriptCount++
+			}
+		} else {
+			if ext == ".sh" {
+				scriptCount++
+			}
+		}
+	}
+
+	return dirCount, scriptCount
 }
 
 // extractDescription extracts the description from script comments

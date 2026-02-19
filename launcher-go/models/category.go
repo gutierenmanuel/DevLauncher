@@ -18,6 +18,7 @@ type Category struct {
 	Path        string
 	Icon        string
 	Description string
+	DirCount    int
 	ScriptCount int
 }
 
@@ -47,12 +48,23 @@ func ScanCategories(rootDir string) ([]Category, error) {
 			continue
 		}
 
+		dirCount := 0
+		scriptCount := 0
+		for _, item := range items {
+			if item.Extension == ".dir" {
+				dirCount++
+			} else {
+				scriptCount++
+			}
+		}
+
 		categories = append(categories, Category{
 			Name:        entry.Name(),
 			Path:        categoryPath,
 			Icon:        folderIconFromREADME(categoryPath, entry.Name()),
 			Description: folderDescriptionFromREADME(categoryPath, entry.Name()),
-			ScriptCount: len(items),
+			DirCount:    dirCount,
+			ScriptCount: scriptCount,
 		})
 	}
 
@@ -108,41 +120,50 @@ func readmeFolderMeta(folderPath string) (string, string, bool) {
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
-	firstUseful := ""
-	secondUseful := ""
-
+	lines := make([]string, 0)
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-		line = strings.TrimLeft(line, "#")
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if firstUseful == "" {
-			firstUseful = line
-			continue
-		}
-		secondUseful = line
-		break
+		lines = append(lines, scanner.Text())
 	}
 
-	if firstUseful == "" {
+	headerIndex := -1
+	headerText := ""
+	for i, raw := range lines {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "#") {
+			headerIndex = i
+			headerText = strings.TrimSpace(strings.TrimLeft(trimmed, "#"))
+			break
+		}
+	}
+
+	if headerIndex == -1 || headerText == "" {
 		return "", "", false
 	}
 
-	fields := strings.Fields(firstUseful)
+	fields := strings.Fields(headerText)
 	icon := ""
-	desc := firstUseful
 	if len(fields) > 0 && looksLikeEmojiToken(fields[0]) {
 		icon = fields[0]
-		desc = strings.TrimSpace(strings.TrimPrefix(firstUseful, fields[0]))
 	}
-	if desc == "" {
-		desc = secondUseful
+
+	desc := ""
+	for i := headerIndex + 1; i < len(lines); i++ {
+		line := strings.TrimSpace(lines[i])
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		desc = line
+		break
+	}
+
+	if len(fields) > 0 && looksLikeEmojiToken(fields[0]) {
+		_ = fields[0]
 	}
 
 	return icon, desc, true
