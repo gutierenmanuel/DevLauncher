@@ -3,8 +3,10 @@ package tui
 import (
 	"embed"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -22,6 +24,7 @@ const (
 	PhaseConfirm                 // Show plan, press y/n
 	PhaseInstalling              // Progress bar extracting files
 	PhaseShellConfig             // Spinner configuring shell
+	PhaseDesktopShortcut         // Optional: create desktop shortcut
 	PhaseDone                    // Success
 	PhaseError                   // Error
 )
@@ -44,7 +47,12 @@ type Model struct {
 	doneFiles    int
 	currentFile  string
 	shellProfile string
+	shortcutPath string
 	err          error
+
+	createShortcut  bool
+	launchAfterDone bool
+	launchPath      string
 
 	// embed fs (passed from main)
 	assets embed.FS
@@ -80,6 +88,13 @@ type shellDoneMsg struct {
 	err     error
 }
 
+type shortcutDoneMsg struct {
+	path string
+	err  error
+}
+
+type autoQuitMsg struct{}
+
 // NewModel creates a new installer Model.
 func NewModel(assets embed.FS) Model {
 	s := spinner.New()
@@ -89,10 +104,11 @@ func NewModel(assets embed.FS) Model {
 	p := progress.New(progress.WithDefaultGradient())
 
 	return Model{
-		phase:    PhaseSplash,
-		spinner:  s,
-		progress: p,
-		assets:   assets,
+		phase:          PhaseSplash,
+		spinner:        s,
+		progress:       p,
+		assets:         assets,
+		createShortcut: true,
 	}
 }
 
@@ -161,7 +177,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.shellProfile = msg.profile
+		if m.createShortcut {
+			m.phase = PhaseDesktopShortcut
+			return m, tea.Batch(m.spinner.Tick, doDesktopShortcut(m.installDir))
+		}
+		m.prepareLaunch()
 		m.phase = PhaseDone
+		return m, tea.Tick(700*time.Millisecond, func(time.Time) tea.Msg { return autoQuitMsg{} })
+
+	case shortcutDoneMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			m.phase = PhaseError
+			return m, nil
+		}
+		m.shortcutPath = msg.path
+		m.prepareLaunch()
+		m.phase = PhaseDone
+		return m, tea.Tick(700*time.Millisecond, func(time.Time) tea.Msg { return autoQuitMsg{} })
+
+	case autoQuitMsg:
+		if m.phase == PhaseDone {
+			return m, tea.Quit
+		}
 		return m, nil
 	}
 
@@ -186,6 +224,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case PhaseConfirm:
 		switch msg.String() {
+		case "d", "D":
+			m.createShortcut = !m.createShortcut
+			return m, nil
 		case "y", "Y", "enter":
 			m.phase = PhaseInstalling
 			m.doneFiles = 0
@@ -274,6 +315,21 @@ func doShellConfig(installDir string) tea.Cmd {
 	}
 }
 
+func doDesktopShortcut(installDir string) tea.Cmd {
+	return func() tea.Msg {
+		path, err := installer.CreateDesktopShortcut(installDir)
+		return shortcutDoneMsg{path: path, err: err}
+	}
+}
+
+func (m *Model) prepareLaunch() {
+	launcherPath := installer.GetLauncherPath(m.installDir)
+	if _, err := os.Stat(launcherPath); err == nil {
+		m.launchAfterDone = true
+		m.launchPath = launcherPath
+	}
+}
+
 func (m Model) View() string {
 	switch m.phase {
 	case PhaseSplash:
@@ -286,6 +342,8 @@ func (m Model) View() string {
 		return m.viewInstalling()
 	case PhaseShellConfig:
 		return m.viewShellConfig()
+	case PhaseDesktopShortcut:
+		return m.viewDesktopShortcut()
 	case PhaseDone:
 		return m.viewDone()
 	case PhaseError:
@@ -340,6 +398,11 @@ func (m Model) viewConfirm() string {
 
 	sb.WriteString("\n")
 	sb.WriteString(NormalStyle.Render(fmt.Sprintf("Archivos a instalar: %d", m.totalFiles)) + "\n\n")
+	if m.createShortcut {
+		sb.WriteString(CyanStyle.Render("Acceso directo escritorio: activado") + DimStyle.Render("  (pulsa d para desactivar)") + "\n\n")
+	} else {
+		sb.WriteString(DimStyle.Render("Acceso directo escritorio: desactivado  (pulsa d para activar)") + "\n\n")
+	}
 	sb.WriteString(SuccessStyle.Render("[y] Instalar") + "  " + ErrorStyle.Render("[q] Cancelar"))
 
 	return m.center(BoxStyle.Render(sb.String()))
@@ -363,6 +426,13 @@ func (m Model) viewShellConfig() string {
 	return m.center(sb.String())
 }
 
+func (m Model) viewDesktopShortcut() string {
+	var sb strings.Builder
+	sb.WriteString(TitleStyle.Render("Creando acceso directo en escritorio...") + "\n\n")
+	sb.WriteString(m.spinner.View() + " Generando acceso directo...\n")
+	return m.center(sb.String())
+}
+
 func (m Model) viewDone() string {
 	sourceCmd := "source ~/.bashrc"
 	if runtime.GOOS == "windows" {
@@ -377,13 +447,21 @@ func (m Model) viewDone() string {
 	if m.shellProfile != "" {
 		sb.WriteString(NormalStyle.Render("Perfil:     "+m.shellProfile) + "\n")
 	}
+	if m.shortcutPath != "" {
+		sb.WriteString(NormalStyle.Render("Acceso directo: "+m.shortcutPath) + "\n")
+	}
 	sb.WriteString("\n")
 	sb.WriteString(CyanStyle.Render("Para activar, ejecuta:") + "\n")
 	sb.WriteString(PurpleStyle.Render("  "+sourceCmd) + "\n\n")
 	sb.WriteString(CyanStyle.Render("Comandos disponibles:") + "\n")
 	sb.WriteString(NormalStyle.Render("  devlauncher / dl  →  Lanzador interactivo") + "\n")
 	sb.WriteString(NormalStyle.Render("  devscript <nom>   →  Ejecutar script directo") + "\n\n")
-	sb.WriteString(DimStyle.Render("Presiona cualquier tecla para salir"))
+	if m.launchAfterDone {
+		sb.WriteString(CyanStyle.Render("Iniciando DevLauncher...") + "\n")
+		sb.WriteString(DimStyle.Render("Se abrirá en esta misma terminal."))
+	} else {
+		sb.WriteString(DimStyle.Render("Presiona cualquier tecla para salir"))
+	}
 
 	return m.center(BoxStyle.Render(sb.String()))
 }
@@ -404,4 +482,14 @@ func (m Model) center(s string) string {
 		return s
 	}
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, s)
+}
+
+// ShouldLaunch indicates whether main should launch DevLauncher after installer exits.
+func (m Model) ShouldLaunch() bool {
+	return m.launchAfterDone
+}
+
+// LaunchPath returns the launcher binary path to execute after successful install.
+func (m Model) LaunchPath() string {
+	return m.launchPath
 }

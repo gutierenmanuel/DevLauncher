@@ -50,7 +50,8 @@ func ConfigureShell(installDir string) (string, error) {
 	return profilePath, nil
 }
 
-// RemoveShellConfig removes the DevScripts block from the PowerShell profile.
+// RemoveShellConfig removes the DevScripts block from the PowerShell profile
+// and cleans DEVSCRIPTS_ROOT + install dir from the user registry PATH.
 // Returns the profile path and any error.
 func RemoveShellConfig() (string, error) {
 	cmd := exec.Command("powershell", "-NoProfile", "-Command", "$PROFILE.CurrentUserAllHosts")
@@ -70,7 +71,37 @@ func RemoveShellConfig() (string, error) {
 
 	cleaned := removeBlock(string(data), "# DevScripts Installer", "# End DevScripts Installer")
 	cleaned = strings.TrimRight(cleaned, "\n\r") + "\n"
-	return profilePath, os.WriteFile(profilePath, []byte(cleaned), 0644)
+	if err := os.WriteFile(profilePath, []byte(cleaned), 0644); err != nil {
+		return profilePath, err
+	}
+
+	// Remove DEVSCRIPTS_ROOT and its path from the user registry environment.
+	installDir := GetInstallDir()
+	_ = removeFromRegistryEnv(installDir)
+
+	return profilePath, nil
+}
+
+// removeFromRegistryEnv removes DEVSCRIPTS_ROOT from user env and strips any
+// devscripts-related entries from the user's permanent PATH in the registry.
+func removeFromRegistryEnv(installDir string) error {
+	script := `
+$installDir = "` + installDir + `"
+# Remove DEVSCRIPTS_ROOT from user environment
+[System.Environment]::SetEnvironmentVariable("DEVSCRIPTS_ROOT", $null, "User")
+# Strip install dir and any *devscripts* entries from user PATH
+$path = [System.Environment]::GetEnvironmentVariable("PATH", "User")
+if ($path) {
+    $parts = $path -split ";" |
+        Where-Object { $_ -ne "" -and
+                       $_.ToLower() -ne $installDir.ToLower() -and
+                       $_ -notlike "*\devscripts*" -and
+                       $_ -notlike "*/.devscripts*" }
+    [System.Environment]::SetEnvironmentVariable("PATH", ($parts -join ";"), "User")
+}
+`
+	cmd := exec.Command("powershell", "-NoProfile", "-Command", script)
+	return cmd.Run()
 }
 
 func buildPowerShellBlock(installDir string) string {

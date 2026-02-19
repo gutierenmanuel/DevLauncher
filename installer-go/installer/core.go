@@ -188,6 +188,14 @@ func isExecutable(path string) bool {
 	return base == "launcher.exe" || base == "launcher-linux" || base == "launcher-mac"
 }
 
+// GetLauncherPath returns the launcher executable path inside installDir for current OS.
+func GetLauncherPath(installDir string) string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(installDir, "launcher.exe")
+	}
+	return filepath.Join(installDir, "launcher")
+}
+
 // RemoveInstallDir deletes the entire installation directory.
 func RemoveInstallDir(installDir string) error {
 	return os.RemoveAll(installDir)

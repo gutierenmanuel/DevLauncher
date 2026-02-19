@@ -153,15 +153,15 @@ Cada ejecución muestra un header diferente:
 
 ```bash
 # Primera ejecución
-./launcher-linux
+./outputs/launcher-linux
 # → Muestra asciiart2.txt con degradado
 
 # Segunda ejecución
-./launcher-linux
+./outputs/launcher-linux
 # → Muestra asciiart4.txt con degradado
 
 # Tercera ejecución
-./launcher-linux
+./outputs/launcher-linux
 # → Muestra asciiart.txt con degradado
 ```
 
@@ -222,7 +222,7 @@ static/
 # Ejecutar varias veces
 for i in {1..5}; do
   echo "=== Ejecución $i ==="
-  ./launcher-linux --list | head -30
+  ./outputs/launcher-linux --list | head -30
   echo ""
   sleep 1
 done

@@ -10,8 +10,12 @@ Sistema avanzado de gestión y lanzamiento de scripts de desarrollo con:
 
 ```
 Scripts_dev/
-├── launcher.sh              # 🎯 Lanzador universal con navegación jerárquica
-├── install.sh               # 🌐 Instalador para acceso global
+├── installer-go/            # 📦 Código fuente del instalador ejecutable
+├── launcher-go/             # 🎯 Código fuente del launcher TUI
+├── outputs/                 # 📦 Binarios generados por build
+│   ├── launcher-linux       # 🐧 Binario launcher Linux
+│   ├── launcher.exe         # 🪟 Binario launcher Windows
+│   └── launcher-mac         # 🍎 Binario launcher macOS
 ├── scripts/
 │   ├── lib/
 │   │   ├── common.sh       # 📚 Librería común de funciones
@@ -96,19 +100,23 @@ Código: GO_NOT_FOUND
 
 ## 🚀 Instalación Rápida
 
-### 1. Instalación Global (Recomendado)
+### 1. Instalación Global con ejecutable (Recomendado)
 
 ```bash
 cd /home/lucas/DataProyects/Scripts_dev
-./install.sh
+./outputs/installer-linux
 source ~/.bashrc  # o ~/.zshrc si usas zsh
+
+# Windows (PowerShell)
+.\outputs\installer.exe
+. $PROFILE
 ```
 
 ### 2. Uso Directo (Sin instalar)
 
 ```bash
 cd /home/lucas/DataProyects/Scripts_dev
-./launcher.sh
+./outputs/launcher-linux
 ```
 
 ## 📖 Guía de Uso
@@ -456,14 +464,14 @@ devlauncher --list     # Listar todos los scripts
 
 **El launcher no funciona:**
 ```bash
-chmod +x launcher.sh
-./launcher.sh
+chmod +x outputs/launcher-linux
+./outputs/launcher-linux
 ```
 
 **Los scripts no se encuentran:**
 ```bash
 # Reinstalar
-./install.sh
+./outputs/installer-linux
 source ~/.bashrc
 ```
 

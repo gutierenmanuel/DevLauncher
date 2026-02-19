@@ -6,3 +6,7 @@ installer-go/assets/launcher.exe
 installer-go/assets/launcher-linux
 installer-go/assets/launcher-mac
 installer-go/assets/placeholder
+
+# Build artifacts
+outputs/*
+!outputs/.gitkeep

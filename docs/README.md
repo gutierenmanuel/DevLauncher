@@ -55,20 +55,20 @@ q            - Salir
 ```bash
 # Linux
 cd /home/lucas/DataProyects/Scripts_dev
-./launcher-linux
+./outputs/launcher-linux
 
 # Windows
-launcher.exe
+./outputs/launcher.exe
 
 # macOS
-./launcher-mac
+./outputs/launcher-mac
 ```
 
 ### Opción 2: Compilar desde código
 
 ```bash
 cd launcher-go
-go build -o ../launcher-linux
+go build -o ../outputs/launcher-linux
 ```
 
 ### Opción 3: Cross-compile para todas las plataformas
@@ -76,7 +76,7 @@ go build -o ../launcher-linux
 ```bash
 cd launcher-go
 ./build.sh
-# Genera: launcher-linux, launcher.exe, launcher-mac
+# Genera: outputs/launcher-linux, outputs/launcher.exe, outputs/launcher-mac
 ```
 
 ## 🚀 Uso
@@ -84,7 +84,7 @@ cd launcher-go
 ### Modo Interactivo (TUI)
 
 ```bash
-./launcher-linux
+./outputs/launcher-linux
 ```
 
 Navegación visual con flechas:
@@ -96,7 +96,7 @@ Navegación visual con flechas:
 ### Listar Scripts
 
 ```bash
-./launcher-linux --list
+./outputs/launcher-linux --list
 ```
 
 Muestra todos los scripts organizados por categoría.
@@ -104,16 +104,17 @@ Muestra todos los scripts organizados por categoría.
 ### Ayuda
 
 ```bash
-./launcher-linux --help
+./outputs/launcher-linux --help
 ```
 
 ## 📁 Estructura del Proyecto
 
 ```
 Scripts_dev/
-├── launcher-linux          # Binario Linux (4.7MB)
-├── launcher.exe            # Binario Windows (5.1MB)
-├── launcher-mac            # Binario macOS (4.6MB)
+├── outputs/
+│   ├── launcher-linux      # Binario Linux (4.7MB)
+│   ├── launcher.exe        # Binario Windows (5.1MB)
+│   └── launcher-mac        # Binario macOS (4.6MB)
 ├── launcher-go/            # Código fuente Go
 │   ├── main.go            # Entry point
 │   ├── models/
@@ -162,13 +163,13 @@ go build -o launcher
 
 ```bash
 # Desde Linux, compilar para Windows
-GOOS=windows GOARCH=amd64 go build -o launcher.exe
+GOOS=windows GOARCH=amd64 go build -o ../outputs/launcher.exe
 
 # Desde cualquier SO, compilar para Linux
-GOOS=linux GOARCH=amd64 go build -o launcher-linux
+GOOS=linux GOARCH=amd64 go build -o ../outputs/launcher-linux
 
 # macOS
-GOOS=darwin GOARCH=amd64 go build -o launcher-mac
+GOOS=darwin GOARCH=amd64 go build -o ../outputs/launcher-mac
 ```
 
 ### Compilar todo de una vez
@@ -176,7 +177,7 @@ GOOS=darwin GOARCH=amd64 go build -o launcher-mac
 ```bash
 cd launcher-go
 ./build.sh
-# Genera binarios para Linux, Windows y macOS
+# Genera binarios en ../outputs para Linux, Windows y macOS
 ```
 
 ## 🎨 Arquitectura
@@ -263,7 +264,7 @@ func CategoryDescription(category string) string {
 ### Probar navegación
 
 ```bash
-./launcher-linux
+./outputs/launcher-linux
 # Navega con flechas
 # Presiona Enter para seleccionar
 # Presiona Esc para volver
@@ -273,7 +274,7 @@ func CategoryDescription(category string) string {
 ### Probar ejecución de scripts
 
 ```bash
-./launcher-linux
+./outputs/launcher-linux
 # Navega a cualquier categoría
 # Selecciona un script
 # Verifica que se ejecuta correctamente
@@ -283,7 +284,7 @@ func CategoryDescription(category string) string {
 ### Probar --list
 
 ```bash
-./launcher-linux --list
+./outputs/launcher-linux --list
 # Debe mostrar todos los scripts organizados
 ```
 
@@ -334,7 +335,7 @@ fmt.Println("Platform:", DetectPlatform())
 ### Ver qué scripts encuentra
 
 ```bash
-./launcher-linux --list
+./outputs/launcher-linux --list
 ```
 
 ### Logs de ejecución
@@ -356,7 +357,7 @@ El launcher Go **convive** con las versiones shell:
 ./launcher.sh
 
 # Nuevo
-./launcher-linux
+./outputs/launcher-linux
 ```
 
 **No es necesario borrar** los launchers antiguos. Ambos funcionan.
@@ -386,7 +387,7 @@ MIT License
 R: No, solo si quieres compilar. Los binarios son standalone.
 
 **P: ¿Funciona en Windows?**  
-R: Sí, usa `launcher.exe`
+R: Sí, usa `outputs/launcher.exe`
 
 **P: ¿Por qué el binario es tan grande?**  
 R: Go incluye el runtime. Pero no necesita dependencias externas.
@@ -398,7 +399,7 @@ R: Sí, ambos conviven sin problemas.
 R: Simplemente agrégalos a `scripts/linux/categoria/`. Se detectan automáticamente.
 
 **P: ¿Funciona WSL?**  
-R: Sí, usa `launcher-linux`
+R: Sí, usa `outputs/launcher-linux`
 
 ---
 

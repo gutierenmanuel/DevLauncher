@@ -22,7 +22,29 @@ if (-not $All -and -not $Windows -and -not $Linux -and -not $Mac) {
 }
 
 $LauncherDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$OutputDir   = Split-Path -Parent $LauncherDir
+$RepoRoot    = Split-Path -Parent $LauncherDir
+$OutputDir   = Join-Path $RepoRoot "outputs"
+$IconPath    = Join-Path $RepoRoot "static\devL.ico"
+$SysoPath    = Join-Path $LauncherDir "rsrc_windows_amd64.syso"
+$VersionFile = Join-Path $RepoRoot "VERSION.txt"
+
+if (-not (Test-Path $VersionFile)) {
+    throw "No se encontró VERSION.txt"
+}
+
+$VersionToken = ((Get-Content -Path $VersionFile -TotalCount 1).Trim() -split '\s+')[0]
+$VersionNumber = $VersionToken.TrimStart('v','V')
+if ([string]::IsNullOrWhiteSpace($VersionNumber)) {
+    throw "No se pudo leer la versión numérica desde VERSION.txt"
+}
+
+$LauncherWinName   = "$VersionNumber-devlauncher.exe"
+$LauncherLinuxName = "$VersionNumber-devlauncher-linux"
+$LauncherMacName   = "$VersionNumber-devlauncher-mac"
+
+if (-not (Test-Path $OutputDir)) {
+    New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+}
 
 Write-Host ""
 Write-Host "${Purple}╔════════════════════════════════════════════════════════════╗${NC}"
@@ -39,6 +61,8 @@ if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
 
 $goVersion = go version
 Write-Host "  ${Green}✓${NC} Go detectado: ${Cyan}$goVersion${NC}"
+Write-Host "  ${Green}✓${NC} Carpeta de salida: ${Cyan}$OutputDir${NC}"
+Write-Host "  ${Green}✓${NC} Versión detectada: ${Cyan}$VersionNumber${NC}"
 Write-Host ""
 
 # Entrar al directorio del launcher
@@ -55,6 +79,20 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 
 $buildErrors = 0
+
+function New-WindowsIconResource {
+    if (-not (Test-Path $IconPath)) {
+        Write-Host "  ${Yellow}⚠${NC} Icono no encontrado: $IconPath"
+        return
+    }
+
+    Write-Host "  ${Cyan}⏳${NC} Generando recurso de icono para Windows..."
+    & go run github.com/akavel/rsrc@latest -ico $IconPath -o $SysoPath 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "No se pudo generar el recurso de icono Windows"
+    }
+    Write-Host "  ${Green}✓${NC} Icono Windows aplicado"
+}
 
 function Build-Target {
     param($OS, $Arch, $Output, $Label)
@@ -82,15 +120,16 @@ function Build-Target {
 
 # Compilar según flags
 if ($Windows -or $All) {
-    Build-Target -OS "windows" -Arch "amd64" -Output "launcher.exe"   -Label "Windows (amd64)"
+    New-WindowsIconResource
+    Build-Target -OS "windows" -Arch "amd64" -Output $LauncherWinName   -Label "Windows (amd64)"
 }
 
 if ($Linux -or $All) {
-    Build-Target -OS "linux"   -Arch "amd64" -Output "launcher-linux"  -Label "Linux (amd64)"
+    Build-Target -OS "linux"   -Arch "amd64" -Output $LauncherLinuxName  -Label "Linux (amd64)"
 }
 
 if ($Mac -or $All) {
-    Build-Target -OS "darwin"  -Arch "amd64" -Output "launcher-mac"    -Label "macOS (amd64)"
+    Build-Target -OS "darwin"  -Arch "amd64" -Output $LauncherMacName    -Label "macOS (amd64)"
 }
 
 Write-Host ""
@@ -101,7 +140,7 @@ if ($buildErrors -eq 0) {
     Write-Host "  ${Green}✓ Build completado correctamente${NC}"
     Write-Host ""
     Write-Host "  ${Cyan}Binarios disponibles:${NC}"
-    @("launcher.exe", "launcher-linux", "launcher-mac") | ForEach-Object {
+    @($LauncherWinName, $LauncherLinuxName, $LauncherMacName) | ForEach-Object {
         $p = Join-Path $OutputDir $_
         if (Test-Path $p) {
             $size = [math]::Round((Get-Item $p).Length / 1MB, 2)
@@ -118,6 +157,10 @@ if ($buildErrors -eq 0) {
     Write-Host ""
     Write-Host "  ${Red}✗ Build con $buildErrors error(es)${NC}"
     exit 1
+}
+
+if (Test-Path $SysoPath) {
+    Remove-Item $SysoPath -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host ""

@@ -10,8 +10,7 @@ Historial de cambios por versión del proyecto DevScripts.
 - **Installer ejecutable Go** (`installer.exe` / `installer-linux`): instalador self-contained con TUI BubbleTea que embebe todos los scripts, launcher y assets en un único binario. Sin dependencias externas.
 - **Uninstaller ejecutable Go** (`uninstaller.exe` / `uninstaller-linux`): desinstalador con TUI que elimina `~/.devscripts/` y limpia el perfil de shell.
 - **Detección de versión e instalación previa**: el installer detecta automáticamente si ya existe una versión instalada y propone actualizar o reinstalar.
-- **Scripts de desinstalación legacy** (`uninstall.ps1` / `uninstall.sh`): eliminan la configuración dejada por los instaladores de script anteriores.
-- **`build-installer.ps1` / `build-installer.sh`**: scripts de build todo-en-uno que compilan launcher + installer + uninstaller para Windows y Linux.
+- **`installer-go/build-installer.ps1` / `installer-go/build-installer.sh`**: scripts de build todo-en-uno que compilan launcher + installer + uninstaller para Windows y Linux y publican binarios en `outputs/`.
 - **`CHANGELOG.md`**: este archivo, historial de cambios por versión.
 
 ### 🔧 Mejoras
@@ -34,7 +33,6 @@ Historial de cambios por versión del proyecto DevScripts.
 ## v0.2.0
 
 ### ✨ Nuevo
-- **Instaladores de shell** (`install.ps1` / `install.sh`): configuran PATH, alias `devlauncher`/`dl` y función `devscript` con autocompletado.
 - Soporte para reinstalación (detecta instalación previa y ofrece reemplazar).
 - Detección automática de shell (bash/zsh).
 
