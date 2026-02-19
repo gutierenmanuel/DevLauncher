@@ -1,6 +1,15 @@
 # Script para instalar Python 3.12 en Windows
 # Descarga e instala Python 3.12 desde python.org
 
+# Auto-elevar a administrador si no se tienen los permisos necesarios
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "Se requieren permisos de administrador para instalar Python." -ForegroundColor Yellow
+    Write-Host "Solicitando elevacion..." -ForegroundColor Yellow
+    $psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+    Start-Process $psExe -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs -Wait
+    exit
+}
+
 # Colores
 $Green = "`e[32m"
 $Blue = "`e[34m"
@@ -82,7 +91,7 @@ Write-Host "  • Precompilar biblioteca estándar"
 Write-Host ""
 
 $installArgs = @(
-    "/quiet",
+    "/passive",
     "InstallAllUsers=1",
     "PrependPath=1",
     "Include_pip=1",
@@ -93,18 +102,26 @@ $installArgs = @(
     "CompileAll=1"
 )
 
+$logFile = "$env:TEMP\python-install.log"
 try {
-    $process = Start-Process -FilePath $installerPath -ArgumentList $installArgs -Wait -PassThru -NoNewWindow
+    $process = Start-Process -FilePath $installerPath -ArgumentList ($installArgs + "/log $logFile") -Wait -PassThru
     
     if ($process.ExitCode -eq 0) {
         Write-Host "${Green}✓ Python instalado correctamente${NC}"
     } else {
         Write-Host "${Red}✗ La instalación falló con código: $($process.ExitCode)${NC}"
+        if (Test-Path $logFile) {
+            Write-Host "${Yellow}  Ultimas lineas del log:${NC}"
+            Get-Content $logFile | Select-Object -Last 15 | ForEach-Object { Write-Host "    $_" }
+        }
+        Remove-Item -Path $installerPath -Force -ErrorAction SilentlyContinue
         exit 1
     }
 } catch {
     Write-Host "${Red}✗ Error durante la instalación: $_${NC}"
     exit 1
+} finally {
+    Remove-Item $logFile -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host ""

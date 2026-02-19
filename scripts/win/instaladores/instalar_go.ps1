@@ -7,6 +7,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Auto-elevar a administrador si no se tienen los permisos necesarios
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "Se requieren permisos de administrador para instalar Go." -ForegroundColor Yellow
+    Write-Host "Solicitando elevacion..." -ForegroundColor Yellow
+    $psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+    Start-Process $psExe -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`" -Version $Version" -Verb RunAs -Wait
+    exit
+}
+
 Write-Host "======================================" -ForegroundColor Magenta
 Write-Host "  Instalando Go $Version en Windows" -ForegroundColor Magenta
 Write-Host "======================================" -ForegroundColor Magenta
@@ -44,11 +53,28 @@ try {
 # Instalar
 Write-Host ""
 Write-Host "[*] Instalando Go..." -ForegroundColor Cyan
-Write-Host "    (Se abrira el instalador MSI)" -ForegroundColor Gray
-Start-Process msiexec.exe -ArgumentList "/i `"$installerPath`" /quiet /norestart" -Wait -NoNewWindow
+Write-Host "    (Aparecera una ventana de progreso)" -ForegroundColor Gray
+
+$logFile = "$env:TEMP\go-install.log"
+$proc = Start-Process msiexec.exe `
+    -ArgumentList "/i `"$installerPath`" /passive /norestart /log `"$logFile`"" `
+    -Wait -PassThru
+
+if ($proc.ExitCode -ne 0) {
+    Write-Host ""
+    Write-Host "X Error en la instalacion (codigo: $($proc.ExitCode))" -ForegroundColor Red
+    if (Test-Path $logFile) {
+        Write-Host "  Ultimas lineas del log:" -ForegroundColor Yellow
+        Get-Content $logFile | Select-Object -Last 15 | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+    }
+    Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+    exit 1
+}
+Write-Host "OK Instalacion completada" -ForegroundColor Green
 
 # Limpiar
-Remove-Item $installerPath -Force
+Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+Remove-Item $logFile -Force -ErrorAction SilentlyContinue
 
 # Refrescar PATH en sesion actual
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")

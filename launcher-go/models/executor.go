@@ -17,9 +17,9 @@ func getScriptCommand(script Script) *exec.Cmd {
 	case ".ps1":
 		// Try pwsh first, fallback to powershell
 		if _, err := exec.LookPath("pwsh"); err == nil {
-			cmd = exec.Command("pwsh", "-File", script.Path)
+			cmd = exec.Command("pwsh", "-ExecutionPolicy", "Bypass", "-File", script.Path)
 		} else {
-			cmd = exec.Command("powershell", "-File", script.Path)
+			cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", script.Path)
 		}
 	case ".bat":
 		if runtime.GOOS == "windows" {
@@ -45,9 +45,9 @@ func ExecuteScript(script Script) (int, string) {
 	case ".ps1":
 		// Try pwsh first, fallback to powershell
 		if _, err := exec.LookPath("pwsh"); err == nil {
-			cmd = exec.Command("pwsh", "-File", script.Path)
+			cmd = exec.Command("pwsh", "-ExecutionPolicy", "Bypass", "-File", script.Path)
 		} else {
-			cmd = exec.Command("powershell", "-File", script.Path)
+			cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", script.Path)
 		}
 	case ".bat":
 		if runtime.GOOS == "windows" {

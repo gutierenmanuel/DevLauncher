@@ -1,6 +1,15 @@
 # Script para instalar Volta en Windows
 # Volta es un gestor de versiones de Node.js rápido y confiable
 
+# Auto-elevar a administrador si no se tienen los permisos necesarios
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "Se requieren permisos de administrador para instalar Volta." -ForegroundColor Yellow
+    Write-Host "Solicitando elevacion..." -ForegroundColor Yellow
+    $psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+    Start-Process $psExe -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs -Wait
+    exit
+}
+
 # Colores
 $Green = "`e[32m"
 $Blue = "`e[34m"
@@ -76,18 +85,27 @@ Write-Host "${Blue}→ Instalando Volta...${NC}"
 Write-Host "${Yellow}Se abrirá el instalador de Windows...${NC}"
 Write-Host ""
 
+$logFile = "$env:TEMP\volta-install.log"
 try {
-    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i", $installerPath, "/quiet", "/norestart" -Wait -PassThru -NoNewWindow
+    $process = Start-Process -FilePath "msiexec.exe" `
+        -ArgumentList "/i", $installerPath, "/passive", "/norestart", "/log", $logFile `
+        -Wait -PassThru
     
     if ($process.ExitCode -eq 0) {
         Write-Host "${Green}✓ Volta instalado correctamente${NC}"
     } else {
         Write-Host "${Red}✗ La instalación falló con código: $($process.ExitCode)${NC}"
+        if (Test-Path $logFile) {
+            Write-Host "${Yellow}  Ultimas lineas del log:${NC}"
+            Get-Content $logFile | Select-Object -Last 15 | ForEach-Object { Write-Host "    $_" }
+        }
         exit 1
     }
 } catch {
     Write-Host "${Red}✗ Error durante la instalación: $_${NC}"
     exit 1
+} finally {
+    Remove-Item $logFile -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host ""
@@ -99,9 +117,9 @@ Write-Host "${Green}✓ Limpieza completada${NC}"
 
 Write-Host ""
 
-# Actualizar PATH en la sesión actual
-$voltaPath = "$env:LOCALAPPDATA\Volta\bin"
-$env:PATH = "$voltaPath;$env:PATH"
+# Actualizar PATH en la sesión actual (leer desde el registro para capturar lo que instaló el MSI)
+$env:PATH = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
+            [System.Environment]::GetEnvironmentVariable("Path", "User")
 $env:VOLTA_HOME = "$env:LOCALAPPDATA\Volta"
 
 Write-Host "${Green}✓ Variables de entorno configuradas${NC}"
