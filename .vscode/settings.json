@@ -1,5 +1,9 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "go": true
+        "go": true,
+        "/^pwsh -NoProfile -ExecutionPolicy Bypass -File \\.\\\\scripts\\\\win\\\\gestion_windows\\\\tests\\\\Run-Tests\\.ps1 -CI$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

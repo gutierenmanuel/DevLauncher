@@ -16,6 +16,14 @@ Este índice centraliza qué prompt usar según la tarea.
   - **Usar cuando:** se creen categorías o subcarpetas nuevas en `scripts/linux` o `scripts/win`.
   - **Cubre:** reglas de detección en launcher, metadatos por `README`, iconos, descripciones y checklist de integración.
 
+- `arreglar_scripts.md`
+  - **Usar cuando:** se corrija un script existente (`.sh`, `.ps1`, `.bat`) y se deba evitar que el fallo reaparezca.
+  - **Cubre:** flujo de diagnóstico, corrección mínima, test de regresión obligatorio por bug, validación local y checklist de cierre.
+
+- `nuevos_tests.md`
+  - **Usar cuando:** se creen o modifiquen tests de scripts, incluyendo regresiones.
+  - **Cubre:** ubicación obligatoria en `scripts/win/configuracion_devlauncher/tests/`, validación funcional real, y mocking de operaciones con side effects para no afectar el sistema.
+
 ## Regla rápida de selección
 
 1. Identifica el tipo de tarea.

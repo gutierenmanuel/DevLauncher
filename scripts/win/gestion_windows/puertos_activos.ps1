@@ -202,7 +202,7 @@ function Show-PortsByProcess {
     if (-not $results) {
         Write-Warning-Msg "No se encontraron puertos TCP usados por '$processName'"
     } else {
-        Write-Host "${Green}Puertos usados por $processName:${NC}"
+        Write-Host "${Green}Puertos usados por ${processName}:${NC}"
         Write-Host "${Purple}════════════════════════════════════════════════════════════${NC}"
         $results | Select-Object `
             @{Label="Estado";        Expression={$_.State}},

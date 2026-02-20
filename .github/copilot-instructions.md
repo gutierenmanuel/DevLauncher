@@ -15,6 +15,13 @@
 4. Validar cambios (build/tests cuando aplique).
 5. Reportar qué se cambió y qué prompt del índice se usó.
 
+## Verificación previa ante dudas
+
+- Si falta información, hay ambigüedad o no se conoce un detalle clave, preguntar al usuario antes de ejecutar cambios.
+- No asumir requisitos críticos sin confirmación explícita.
+- Hacer 1 a 3 preguntas concretas para validar alcance, contexto o criterio de aceptación cuando sea necesario.
+- Reanudar la ejecución solo después de tener claridad suficiente para actuar con seguridad.
+
 ## Convenciones de mantenimiento del índice
 
 - Cada nuevo archivo en `prompts/*.md` debe añadirse en `prompts/index.md`.
