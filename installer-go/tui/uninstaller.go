@@ -281,7 +281,7 @@ func (m UninstallModel) viewUDone() string {
 	sb.WriteString(NormalStyle.Render("Eliminado: contenido de "+m.installDir) + "\n")
 	sb.WriteString(TitleStyle.Render("Conservado: scripts-old-<random> (si existía scripts/)") + "\n")
 	if m.removeShell && m.shellFile != "" {
-		sb.WriteString(NormalStyle.Render("Config:    "+m.shellFile) + "\n")
+		sb.WriteString(NormalStyle.Render("Perfiles:  "+m.shellFile) + "\n")
 		sb.WriteString("\n" + CyanStyle.Render("Para aplicar los cambios:") + "\n")
 		sb.WriteString(PurpleStyle.Render("  "+sourceCmd) + "\n")
 	}

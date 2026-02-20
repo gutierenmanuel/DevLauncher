@@ -9,77 +9,105 @@ import (
 	"strings"
 )
 
-// ConfigureShell configures PowerShell profile with DevScripts settings.
-// Returns the profile path and any error.
+// ConfigureShell configures both Windows PowerShell and PowerShell 7 profiles
+// with DevScripts settings.
+// Returns the written profile paths and any error.
 func ConfigureShell(installDir string) (string, error) {
-	// Get $PROFILE.CurrentUserAllHosts path
-	cmd := exec.Command("powershell", "-NoProfile", "-Command", "$PROFILE.CurrentUserAllHosts")
-	out, err := cmd.Output()
+	profilePaths, err := getWindowsProfilePaths()
 	if err != nil {
 		return "", err
 	}
-	profilePath := strings.TrimSpace(string(out))
 
-	// Create profile directory if needed
-	if err := os.MkdirAll(filepath.Dir(profilePath), 0755); err != nil {
-		return "", err
-	}
-
-	// Read existing profile content
-	existing := ""
-	if data, err := os.ReadFile(profilePath); err == nil {
-		existing = string(data)
-	}
-
-	// Remove old DevScripts block if present
-	existing = removeBlock(existing, "# DevScripts Installer", "# End DevScripts Installer")
-
-	// Build new config block
 	block := buildPowerShellBlock(installDir)
+	written := make([]string, 0, len(profilePaths))
 
-	// Append new block
-	content := strings.TrimRight(existing, "\n\r") + "\n\n" + block + "\n"
-	if strings.TrimSpace(existing) == "" {
-		content = block + "\n"
+	for _, profilePath := range profilePaths {
+		if err := os.MkdirAll(filepath.Dir(profilePath), 0755); err != nil {
+			return "", err
+		}
+
+		existing := ""
+		if data, err := os.ReadFile(profilePath); err == nil {
+			existing = string(data)
+		}
+
+		existing = removeBlock(existing, "# DevScripts Installer", "# End DevScripts Installer")
+
+		content := strings.TrimRight(existing, "\n\r") + "\n\n" + block + "\n"
+		if strings.TrimSpace(existing) == "" {
+			content = block + "\n"
+		}
+
+		if err := os.WriteFile(profilePath, []byte(content), 0644); err != nil {
+			return "", err
+		}
+
+		written = append(written, profilePath)
 	}
 
-	if err := os.WriteFile(profilePath, []byte(content), 0644); err != nil {
-		return "", err
-	}
-
-	return profilePath, nil
+	return strings.Join(written, ", "), nil
 }
 
-// RemoveShellConfig removes the DevScripts block from the PowerShell profile
+// RemoveShellConfig removes the DevScripts block from both Windows PowerShell
+// and PowerShell 7 profiles,
 // and cleans DEVSCRIPTS_ROOT + install dir from the user registry PATH.
-// Returns the profile path and any error.
+// Returns the cleaned profile paths and any error.
 func RemoveShellConfig() (string, error) {
-	cmd := exec.Command("powershell", "-NoProfile", "-Command", "$PROFILE.CurrentUserAllHosts")
-	out, err := cmd.Output()
+	profilePaths, err := getWindowsProfilePaths()
 	if err != nil {
 		return "", err
 	}
-	profilePath := strings.TrimSpace(string(out))
+	cleanedPaths := make([]string, 0, len(profilePaths))
 
-	data, err := os.ReadFile(profilePath)
-	if os.IsNotExist(err) {
-		return profilePath, nil // nothing to do
-	}
-	if err != nil {
-		return "", err
-	}
+	for _, profilePath := range profilePaths {
+		data, err := os.ReadFile(profilePath)
+		if os.IsNotExist(err) {
+			cleanedPaths = append(cleanedPaths, profilePath)
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
 
-	cleaned := removeBlock(string(data), "# DevScripts Installer", "# End DevScripts Installer")
-	cleaned = strings.TrimRight(cleaned, "\n\r") + "\n"
-	if err := os.WriteFile(profilePath, []byte(cleaned), 0644); err != nil {
-		return profilePath, err
+		cleaned := removeBlock(string(data), "# DevScripts Installer", "# End DevScripts Installer")
+		cleaned = strings.TrimRight(cleaned, "\n\r") + "\n"
+		if err := os.WriteFile(profilePath, []byte(cleaned), 0644); err != nil {
+			return strings.Join(cleanedPaths, ", "), err
+		}
+
+		cleanedPaths = append(cleanedPaths, profilePath)
 	}
 
 	// Remove DEVSCRIPTS_ROOT and its path from the user registry environment.
 	installDir := GetInstallDir()
 	_ = removeFromRegistryEnv(installDir)
 
-	return profilePath, nil
+	return strings.Join(cleanedPaths, ", "), nil
+}
+
+func getWindowsProfilePaths() ([]string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	paths := []string{
+		filepath.Join(home, "Documents", "WindowsPowerShell", "profile.ps1"),
+		filepath.Join(home, "Documents", "PowerShell", "profile.ps1"),
+	}
+
+	seen := make(map[string]struct{}, len(paths))
+	unique := make([]string, 0, len(paths))
+	for _, p := range paths {
+		norm := strings.ToLower(filepath.Clean(p))
+		if _, ok := seen[norm]; ok {
+			continue
+		}
+		seen[norm] = struct{}{}
+		unique = append(unique, p)
+	}
+
+	return unique, nil
 }
 
 // removeFromRegistryEnv removes DEVSCRIPTS_ROOT from user env and strips any

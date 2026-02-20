@@ -18,14 +18,14 @@ import (
 type Phase int
 
 const (
-	PhaseSplash     Phase = iota // Welcome screen, press Enter
-	PhaseDetecting               // Spinner while detecting
-	PhaseConfirm                 // Show plan, press y/n
-	PhaseInstalling              // Progress bar extracting files
-	PhaseShellConfig             // Spinner configuring shell
-	PhaseDesktopShortcut         // Optional: create desktop shortcut
-	PhaseDone                    // Success
-	PhaseError                   // Error
+	PhaseSplash          Phase = iota // Welcome screen, press Enter
+	PhaseDetecting                    // Spinner while detecting
+	PhaseConfirm                      // Show plan, press y/n
+	PhaseInstalling                   // Progress bar extracting files
+	PhaseShellConfig                  // Spinner configuring shell
+	PhaseDesktopShortcut              // Optional: create desktop shortcut
+	PhaseDone                         // Success
+	PhaseError                        // Error
 )
 
 // Model is the BubbleTea model for the installer TUI.
@@ -425,7 +425,7 @@ func (m Model) viewInstalling() string {
 
 func (m Model) viewShellConfig() string {
 	var sb strings.Builder
-	sb.WriteString(TitleStyle.Render("Configurando perfil de shell...") + "\n\n")
+	sb.WriteString(TitleStyle.Render("Configurando perfiles de shell...") + "\n\n")
 	sb.WriteString(m.spinner.View() + " Escribiendo configuración...\n")
 	return m.center(sb.String())
 }
@@ -449,7 +449,7 @@ func (m Model) viewDone() string {
 	sb.WriteString(SuccessStyle.Render("✨ ¡Instalación completada!") + "\n\n")
 	sb.WriteString(NormalStyle.Render("Directorio: "+m.installDir) + "\n")
 	if m.shellProfile != "" {
-		sb.WriteString(NormalStyle.Render("Perfil:     "+m.shellProfile) + "\n")
+		sb.WriteString(NormalStyle.Render("Perfiles:   "+m.shellProfile) + "\n")
 	}
 	if m.shortcutPath != "" {
 		sb.WriteString(NormalStyle.Render("Acceso directo: "+m.shortcutPath) + "\n")
