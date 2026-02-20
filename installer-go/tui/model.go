@@ -457,9 +457,9 @@ func (m Model) viewDone() string {
 	sb.WriteString("\n")
 	sb.WriteString(CyanStyle.Render("Para activar, ejecuta:") + "\n")
 	sb.WriteString(PurpleStyle.Render("  "+sourceCmd) + "\n\n")
-	sb.WriteString(CyanStyle.Render("Comandos disponibles:") + "\n")
-	sb.WriteString(NormalStyle.Render("  devlauncher / dl  →  Lanzador interactivo") + "\n")
-	sb.WriteString(NormalStyle.Render("  devscript <nom>   →  Ejecutar script directo") + "\n\n")
+	sb.WriteString(TitleStyle.Render("Comandos disponibles") + "\n")
+	sb.WriteString(TitleStyle.Render("  • devlauncher") + DimStyle.Render(" (alias: dl)") + "\n")
+	sb.WriteString(TitleStyle.Render("  • devscript <nombre_script>") + DimStyle.Render(" (ejecución directa)") + "\n\n")
 	if m.launchAfterDone {
 		sb.WriteString(CyanStyle.Render("Pulsa Enter para continuar") + "\n")
 		sb.WriteString(DimStyle.Render("Al continuar, se iniciará DevLauncher automáticamente."))

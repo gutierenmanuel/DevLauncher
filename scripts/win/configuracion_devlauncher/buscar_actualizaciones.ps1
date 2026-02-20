@@ -3,6 +3,11 @@
 
 $ErrorActionPreference = "Stop"
 
+function Pause-And-Exit([int]$Code = 0) {
+    Read-Host "Pulsa Enter para continuar"
+    exit $Code
+}
+
 $rootDir = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
 $versionFile = Join-Path $rootDir "VERSION.txt"
 $outputsDir = Join-Path $rootDir "outputs"
@@ -32,3 +37,4 @@ if (Test-Path $outputsDir) {
 
 Write-Host ""
 Write-Host "Estado: comprobación online desactivada por ahora."
+Pause-And-Exit 0

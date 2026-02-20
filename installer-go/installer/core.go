@@ -20,9 +20,9 @@ func GetInstallDir() string {
 		}
 	}
 	if runtime.GOOS == "windows" {
-		return filepath.Join(home, ".devscripts")
+		return filepath.Join(home, ".devlauncher")
 	}
-	return filepath.Join(home, ".devscripts")
+	return filepath.Join(home, ".devlauncher")
 }
 
 // ParseVersion extracts the version tag (e.g. "v1.4.0") from the first word of the first line.
@@ -64,7 +64,7 @@ func parseParts(v string) [3]int {
 	return nums
 }
 
-// ExistingInstall represents a previously installed DevScripts installation.
+// ExistingInstall represents a previously installed DevLauncher installation.
 type ExistingInstall struct {
 	Dir     string
 	Version string

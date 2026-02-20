@@ -36,13 +36,34 @@ remove_block() {
 RC_FILE="$(detect_rc_file)"
 remove_block "$RC_FILE"
 
-echo "Desinstalación en curso..."
-(
-  sleep 1
-  rm -rf "$INSTALL_DIR"
-) >/dev/null 2>&1 &
+DESKTOP_DIR="$HOME/Desktop"
+rm -f "$DESKTOP_DIR/DevLauncher.desktop" "$DESKTOP_DIR/DevLauncher" 2>/dev/null || true
 
-echo "DevLauncher desinstalado."
+echo "Desinstalación en curso..."
+
+LEGACY_SCRIPTS_NAME=""
+if [[ -d "$INSTALL_DIR/scripts" ]]; then
+  SUFFIX="$(head /dev/urandom | tr -dc a-f0-9 | head -c 8)"
+  LEGACY_SCRIPTS_NAME="scripts-old-${SUFFIX}"
+  mv "$INSTALL_DIR/scripts" "$INSTALL_DIR/$LEGACY_SCRIPTS_NAME"
+fi
+
+for ITEM in "$INSTALL_DIR"/* "$INSTALL_DIR"/.[!.]* "$INSTALL_DIR"/..?*; do
+  [[ -e "$ITEM" ]] || continue
+  NAME="$(basename "$ITEM")"
+  if [[ -n "$LEGACY_SCRIPTS_NAME" && "$NAME" == "$LEGACY_SCRIPTS_NAME" ]]; then
+    continue
+  fi
+  rm -rf "$ITEM" 2>/dev/null || true
+done
+
+if [[ -n "$LEGACY_SCRIPTS_NAME" ]]; then
+  echo "Scripts preservados en: $LEGACY_SCRIPTS_NAME"
+else
+  echo "No se encontró carpeta scripts para preservar."
+fi
+
+echo "DevLauncher desinstalado (excepto scripts preservados)."
 `
 
 	path := filepath.Join(installDir, "uninstaller.sh")

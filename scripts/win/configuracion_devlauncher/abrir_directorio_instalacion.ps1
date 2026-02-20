@@ -17,3 +17,4 @@ if (-not $targetDir) {
 
 Write-Host "Abriendo explorer en: $targetDir"
 Start-Process explorer.exe $targetDir
+Read-Host "Pulsa Enter para continuar"

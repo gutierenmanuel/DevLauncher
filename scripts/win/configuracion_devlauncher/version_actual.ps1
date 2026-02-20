@@ -3,12 +3,17 @@
 
 $ErrorActionPreference = "Stop"
 
-$installDir = Join-Path $HOME ".devscripts"
+function Pause-And-Exit([int]$Code = 0) {
+    Read-Host "Pulsa Enter para continuar"
+    exit $Code
+}
+
+$installDir = Join-Path $HOME ".devlauncher"
 $versionFile = Join-Path $installDir "VERSION.txt"
 
 if (-not (Test-Path $versionFile)) {
     Write-Host "No se encontró VERSION.txt en: $installDir"
-    exit 1
+    Pause-And-Exit 1
 }
 
 $line = Get-Content $versionFile | Select-Object -First 1
@@ -16,7 +21,8 @@ $token = ($line -split '\s+')[0]
 
 if (-not $token) {
     Write-Host "No se pudo leer la versión."
-    exit 1
+    Pause-And-Exit 1
 }
 
 Write-Host "Versión actual: $token"
+Pause-And-Exit 0

@@ -1,4 +1,4 @@
-# 🚀 Scripts Development Launcher
+# 🚀 DevLauncher
 
 Sistema avanzado de gestión y lanzamiento de scripts de desarrollo con:
 - 🎯 Navegación jerárquica por categorías
@@ -9,7 +9,7 @@ Sistema avanzado de gestión y lanzamiento de scripts de desarrollo con:
 ## 📁 Estructura del Proyecto
 
 ```
-Scripts_dev/
+DevLauncher/
 ├── installer-go/            # 📦 Código fuente del instalador ejecutable
 ├── launcher-go/             # 🎯 Código fuente del launcher TUI
 ├── outputs/                 # 📦 Binarios generados por build

@@ -13,12 +13,27 @@ $ErrorActionPreference = "Stop"
 
 $installDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+$legacyScriptsName = ""
+if (Test-Path (Join-Path $installDir "scripts")) {
+    $suffix = [Guid]::NewGuid().ToString("N").Substring(0, 8)
+    $legacyScriptsName = "scripts-old-" + $suffix
+    Rename-Item -Path (Join-Path $installDir "scripts") -NewName $legacyScriptsName -Force
+}
+
 try {
-    $profilePath = $PROFILE.CurrentUserAllHosts
-    if (Test-Path $profilePath) {
-        $raw = Get-Content $profilePath -Raw
-        $clean = [System.Text.RegularExpressions.Regex]::Replace($raw, '(?s)# DevScripts Installer.*?# End DevScripts Installer\s*', '')
-        Set-Content -Path $profilePath -Value $clean -Encoding UTF8
+    $profileCandidates = @(
+        $PROFILE.CurrentUserAllHosts,
+        $PROFILE.CurrentUserCurrentHost,
+        (Join-Path $HOME "Documents\PowerShell\Microsoft.PowerShell_profile.ps1"),
+        (Join-Path $HOME "Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1")
+    ) | Where-Object { $_ } | Select-Object -Unique
+
+    foreach ($profilePath in $profileCandidates) {
+        if (Test-Path $profilePath) {
+            $raw = Get-Content $profilePath -Raw
+            $clean = [System.Text.RegularExpressions.Regex]::Replace($raw, '(?s)# DevScripts Installer.*?# End DevScripts Installer\s*', '')
+            Set-Content -Path $profilePath -Value $clean -Encoding UTF8
+        }
     }
 } catch {}
 
@@ -27,14 +42,48 @@ try {
     $path = [System.Environment]::GetEnvironmentVariable("PATH", "User")
     if ($path) {
         $parts = $path -split ";" |
-            Where-Object { $_ -and $_.ToLower() -ne $installDir.ToLower() -and $_ -notlike "*\devscripts*" -and $_ -notlike "*/.devscripts*" }
+            Where-Object { $_ -and $_.ToLower() -ne $installDir.ToLower() -and $_ -notlike "*\.devlauncher*" -and $_ -notlike "*/.devlauncher*" -and $_ -notlike "*\devscripts*" -and $_ -notlike "*/.devscripts*" }
         [System.Environment]::SetEnvironmentVariable("PATH", ($parts -join ";"), "User")
     }
 } catch {}
 
+try {
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    $shortcutCandidates = @(
+        (Join-Path $desktop "DevLauncher.lnk"),
+        (Join-Path $desktop "DevLauncher.url")
+    )
+    foreach ($shortcut in $shortcutCandidates) {
+        if (Test-Path $shortcut) {
+            Remove-Item -Path $shortcut -Force -ErrorAction SilentlyContinue
+        }
+    }
+} catch {}
+
 Write-Host "Desinstalación en curso..."
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c timeout /t 1 >nul & rmdir /s /q \"$installDir\"" -WindowStyle Hidden
-Write-Host "DevLauncher desinstalado."
+
+$itemsToRemove = Get-ChildItem -Path $installDir -Force -ErrorAction SilentlyContinue |
+    Where-Object { -not $legacyScriptsName -or $_.Name -ne $legacyScriptsName }
+
+foreach ($item in $itemsToRemove) {
+    try {
+        Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction Stop
+    } catch {
+        # Ignore locked/current file errors (e.g. running uninstaller script)
+    }
+}
+
+if ($legacyScriptsName) {
+    Write-Host "Scripts preservados en: $legacyScriptsName"
+} else {
+    Write-Host "No se encontró carpeta scripts para preservar."
+}
+Write-Host "DevLauncher desinstalado (excepto scripts preservados)."
+
+try {
+    $completionCmd = "Write-Host 'Desinstalación completa de DevLauncher.' -ForegroundColor Green; Write-Host 'Vuelve pronto!' -ForegroundColor Yellow; Write-Host 'Puedes cerrar esta ventana.'"
+    Start-Process powershell -ArgumentList "-NoExit", "-NoProfile", "-Command", $completionCmd | Out-Null
+} catch {}
 `
 
 	path := filepath.Join(installDir, "uninstaller.ps1")

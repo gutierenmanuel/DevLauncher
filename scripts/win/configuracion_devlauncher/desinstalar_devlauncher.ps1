@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$installDir = Join-Path $HOME ".devscripts"
+$installDir = Join-Path $HOME ".devlauncher"
 $uninstaller = Join-Path $installDir "uninstaller.ps1"
 
 if (-not (Test-Path $uninstaller)) {
@@ -20,8 +20,14 @@ if ($confirm -notmatch '^[sS]$') {
     exit 0
 }
 
+$terminalExe = "powershell"
 if (Get-Command pwsh -ErrorAction SilentlyContinue) {
-    & pwsh -ExecutionPolicy Bypass -File $uninstaller
-} else {
-    & powershell -ExecutionPolicy Bypass -File $uninstaller
+    $terminalExe = "pwsh"
 }
+
+$escapedUninstaller = $uninstaller -replace "'", "''"
+$command = "& '$escapedUninstaller'; Write-Host ''; Write-Host 'Vuelve pronto!' -ForegroundColor Yellow"
+
+Start-Process -FilePath $terminalExe -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $command) | Out-Null
+Write-Host "Abriendo desinstalación en una nueva terminal..."
+exit 0

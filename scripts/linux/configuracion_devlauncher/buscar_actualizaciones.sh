@@ -4,6 +4,12 @@
 
 set -e
 
+pause_and_exit() {
+    local code="${1:-0}"
+    read -r -p "Pulsa Enter para continuar"
+    exit "$code"
+}
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 VERSION_FILE="$ROOT_DIR/VERSION.txt"
 OUTPUTS_DIR="$ROOT_DIR/outputs"
@@ -30,3 +36,4 @@ fi
 
 echo ""
 echo "Estado: comprobación online desactivada por ahora."
+pause_and_exit 0

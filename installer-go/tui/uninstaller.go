@@ -232,6 +232,8 @@ func (m UninstallModel) viewUConfirm() string {
 	var sb strings.Builder
 	sb.WriteString(ErrorStyle.Render("⚠  Se eliminará:") + "\n")
 	sb.WriteString(NormalStyle.Render("  Directorio: "+m.installDir) + "\n")
+	sb.WriteString(TitleStyle.Render("  Se conserva: scripts/") + DimStyle.Render(" (se renombra a scripts-old-<random>)") + "\n")
+	sb.WriteString(SuccessStyle.Render("  Tus scripts NO se perderán") + "\n")
 	if m.existing != nil && m.existing.Version != "" {
 		sb.WriteString(DimStyle.Render("  Versión:     "+m.existing.Version) + "\n")
 	}
@@ -276,7 +278,8 @@ func (m UninstallModel) viewUDone() string {
 
 	var sb strings.Builder
 	sb.WriteString(SuccessStyle.Render("✓ Desinstalación completada") + "\n\n")
-	sb.WriteString(NormalStyle.Render("Eliminado: "+m.installDir) + "\n")
+	sb.WriteString(NormalStyle.Render("Eliminado: contenido de "+m.installDir) + "\n")
+	sb.WriteString(TitleStyle.Render("Conservado: scripts-old-<random> (si existía scripts/)") + "\n")
 	if m.removeShell && m.shellFile != "" {
 		sb.WriteString(NormalStyle.Render("Config:    "+m.shellFile) + "\n")
 		sb.WriteString("\n" + CyanStyle.Render("Para aplicar los cambios:") + "\n")

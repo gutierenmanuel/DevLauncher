@@ -83,18 +83,20 @@ func RemoveShellConfig() (string, error) {
 }
 
 // removeFromRegistryEnv removes DEVSCRIPTS_ROOT from user env and strips any
-// devscripts-related entries from the user's permanent PATH in the registry.
+// DevLauncher/devscripts-related entries from the user's permanent PATH in the registry.
 func removeFromRegistryEnv(installDir string) error {
 	script := `
 $installDir = "` + installDir + `"
 # Remove DEVSCRIPTS_ROOT from user environment
 [System.Environment]::SetEnvironmentVariable("DEVSCRIPTS_ROOT", $null, "User")
-# Strip install dir and any *devscripts* entries from user PATH
+# Strip install dir and any *.devlauncher* or *devscripts* entries from user PATH
 $path = [System.Environment]::GetEnvironmentVariable("PATH", "User")
 if ($path) {
     $parts = $path -split ";" |
         Where-Object { $_ -ne "" -and
                        $_.ToLower() -ne $installDir.ToLower() -and
+					   $_ -notlike "*\\.devlauncher*" -and
+					   $_ -notlike "*/.devlauncher*" -and
                        $_ -notlike "*\devscripts*" -and
                        $_ -notlike "*/.devscripts*" }
     [System.Environment]::SetEnvironmentVariable("PATH", ($parts -join ";"), "User")

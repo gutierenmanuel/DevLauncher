@@ -22,7 +22,7 @@ cd ~\DataProyects\Scripts_dev
 
 ## ✨ Qué hace el instalador ejecutable
 
-1. Instala DevLauncher en `~/.devscripts`.
+1. Instala DevLauncher en `~/.devlauncher`.
 2. Configura shell/perfil automáticamente (`.bashrc`, `.zshrc` o `$PROFILE.CurrentUserAllHosts`).
 3. Agrega comandos globales:
    - `devlauncher` / `dl`

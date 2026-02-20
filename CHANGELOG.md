@@ -4,11 +4,11 @@ Historial de cambios por versión del proyecto DevScripts.
 
 ---
 
-## v0.4.0 — 2026-02-19
+## v0.4.5 — 2026-02-19
 
 ### ✨ Nuevo
 - **Installer ejecutable Go** (`installer.exe` / `installer-linux`): instalador self-contained con TUI BubbleTea que embebe todos los scripts, launcher y assets en un único binario. Sin dependencias externas.
-- **Uninstaller ejecutable Go** (`uninstaller.exe` / `uninstaller-linux`): desinstalador con TUI que elimina `~/.devscripts/` y limpia el perfil de shell.
+- **Uninstaller ejecutable Go** (`uninstaller.exe` / `uninstaller-linux`): desinstalador con TUI que elimina `~/.devlauncher/` y limpia el perfil de shell.
 - **Detección de versión e instalación previa**: el installer detecta automáticamente si ya existe una versión instalada y propone actualizar o reinstalar.
 - **`installer-go/build-installer.ps1` / `installer-go/build-installer.sh`**: scripts de build todo-en-uno que compilan launcher + installer + uninstaller para Windows y Linux y publican binarios en `outputs/`.
 - **`CHANGELOG.md`**: este archivo, historial de cambios por versión.
@@ -16,6 +16,41 @@ Historial de cambios por versión del proyecto DevScripts.
 ### 🔧 Mejoras
 - `installer-go/` estructura con módulo Go independiente, compartiendo código entre installer y uninstaller via paquetes `installer/` y `tui/`.
 - Cross-compilation nativa: todo se compila desde Windows hacia Linux (y viceversa) sin toolchains adicionales.
+
+---
+
+## v0.4.1 → v0.4.5 — Resumen de pequeños cambios
+
+### 🔹 Build y artefactos
+- Nombres de binarios versionados en `outputs/` con formato `X.Y.Z-devlauncher*`.
+- `build-all.ps1` restaura el directorio inicial al terminar (no te mueve de carpeta).
+- El pipeline dejó de publicar uninstallers como artefactos finales.
+
+### 🔹 Installer / Uninstaller
+- Reducción fuerte de tamaño del installer: ahora cada installer incluye solo assets de su plataforma.
+- El uninstaller dejó de ser binario embebido grande y pasó a generarse como script ligero durante la instalación (`uninstaller.ps1` / `uninstaller.sh`).
+- Pantalla final del installer: ahora pide `Enter para continuar` y luego lanza automáticamente el launcher.
+- Fix de auto-lanzamiento tras instalar (compatibilidad con modelo BubbleTea por valor o puntero).
+
+### 🔹 Launcher UX
+- Descubrimiento jerárquico real: subcarpetas se abren al entrar, no se aplana todo de golpe.
+- Metadatos de carpeta desde README:
+	- icono = emoji del header,
+	- descripción = primera línea no vacía debajo del header.
+- Vista principal y subcarpetas con estilo visual consistente de directorio.
+- Conteos visibles por carpeta y subcarpeta (`dirs`/`scripts`) con estilo discreto.
+- Versión `vX.X.X` integrada en el header ASCII (lado derecho, color del gradiente rojo).
+
+### 🔹 Terminal `:` integrada
+- Comandos `cd`, `pwd`, `ls` para navegar y operar sobre directorio de trabajo runtime.
+- Los scripts se ejecutan en el directorio actual del launcher (no en ruta fija de instalación).
+- Scroll con rueda del ratón en salida larga (`ls`).
+- Autocompletado con `Tab` para comandos y rutas.
+
+### 🔹 Estructura y documentación
+- Nuevo bloque `configuracion_devlauncher` en `scripts/win` y `scripts/linux`.
+- `tests/` movidos bajo `configuracion_devlauncher/tests`.
+- READMEs añadidos/normalizados con icono en header para detección automática por el launcher.
 
 ---
 

@@ -4,7 +4,7 @@
 
 set -e
 
-INSTALL_DIR="$HOME/.devscripts"
+INSTALL_DIR="$HOME/.devlauncher"
 UNINSTALLER="$INSTALL_DIR/uninstaller.sh"
 
 if [ ! -f "$UNINSTALLER" ]; then
@@ -22,4 +22,26 @@ if [[ ! "$confirm" =~ ^[sS]$ ]]; then
 fi
 
 chmod +x "$UNINSTALLER"
-bash "$UNINSTALLER"
+
+UNINSTALL_CMD="bash '$UNINSTALLER'; echo; echo 'Vuelve pronto!'; echo; exec bash"
+
+if command -v gnome-terminal >/dev/null 2>&1; then
+    gnome-terminal -- bash -lc "$UNINSTALL_CMD" >/dev/null 2>&1 &
+elif command -v x-terminal-emulator >/dev/null 2>&1; then
+    x-terminal-emulator -e bash -lc "$UNINSTALL_CMD" >/dev/null 2>&1 &
+elif command -v konsole >/dev/null 2>&1; then
+    konsole -e bash -lc "$UNINSTALL_CMD" >/dev/null 2>&1 &
+elif command -v xterm >/dev/null 2>&1; then
+    xterm -e bash -lc "$UNINSTALL_CMD" >/dev/null 2>&1 &
+else
+    echo "No se encontró emulador de terminal; ejecutando desinstalación aquí."
+    bash "$UNINSTALLER"
+    echo
+    echo "Vuelve pronto!"
+    exit 0
+fi
+
+echo "Abriendo desinstalación en una nueva terminal..."
+sleep 0.2
+kill -TERM "$PPID" >/dev/null 2>&1 || true
+exit 0
