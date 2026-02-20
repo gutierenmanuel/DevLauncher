@@ -1,4 +1,4 @@
-# Reglas para nuevos scripts en DevLauncher
+# Nuevos scripts en DevLauncher
 
 Estas reglas están alineadas con cómo funciona actualmente el launcher y los scripts del repo.
 

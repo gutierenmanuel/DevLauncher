@@ -106,6 +106,32 @@ Información del sistema al estilo neofetch, sin dependencias externas.
 
 ---
 
+### 5. gestion_docker.ps1
+
+Gestión interactiva de contenedores e imágenes Docker desde PowerShell.
+
+**Funcionalidades:**
+
+1. **Listar contenedores** — Todos o solo los que están en ejecución
+2. **Iniciar / detener / reiniciar contenedor** — Selección numérica por lista
+3. **Ver logs de contenedor** — Tail configurable de líneas
+4. **Abrir shell en contenedor** — Intenta `bash` y fallback a `sh`
+5. **Ver estadísticas en vivo** — `docker stats` en tiempo real
+6. **Eliminar contenedor** — Con confirmación por nombre
+7. **Limpiar recursos** — Prune de contenedores detenidos e imágenes sin uso
+8. **Ver información de Docker** — Versiones de cliente/server y estado general
+
+**Equivalencias Linux:**
+
+| Linux / Docker CLI              | Windows (PowerShell)                 |
+|---------------------------------|--------------------------------------|
+| `docker ps -a`                  | `docker ps -a`                       |
+| `docker logs --tail 100 <id>`   | `docker logs --tail 100 <id>`        |
+| `docker exec -it <id> bash`     | `docker exec -it <id> bash`          |
+| `docker container prune -f`     | `docker container prune -f`          |
+
+---
+
 ## 🚀 Uso
 
 ```powershell
@@ -118,6 +144,7 @@ dl
 .\scripts\win\gestion_windows\puertos_activos.ps1
 .\scripts\win\gestion_windows\espacio_disponible.ps1
 .\scripts\win\gestion_windows\visualizador_sistema.ps1
+.\scripts\win\gestion_windows\gestion_docker.ps1
 ```
 
 ## 🔧 Requisitos
