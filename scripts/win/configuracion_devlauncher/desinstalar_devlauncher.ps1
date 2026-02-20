@@ -1,33 +1,23 @@
 # Script: Desinstalar DevLauncher en Windows
-# Ejecuta el uninstaller instalado en el directorio de DevLauncher.
+# Ejecuta el uninstaller.exe instalado en el directorio de DevLauncher.
 
 $ErrorActionPreference = "Stop"
 
 $installDir = Join-Path $HOME ".devlauncher"
-$uninstaller = Join-Path $installDir "uninstaller.ps1"
+$uninstaller = Join-Path $installDir "uninstaller.exe"
 
 if (-not (Test-Path $uninstaller)) {
-    Write-Host "No se encontró el uninstaller instalado en: $uninstaller"
-    Write-Host "Instala DevLauncher para generar el desinstalador local."
+    Write-Host "No se encontró el uninstaller instalado en: $uninstaller" -ForegroundColor Red
+    Write-Host "Instala DevLauncher primero para generar el desinstalador."
     exit 1
 }
 
-Write-Host "Se ejecutará: $uninstaller"
-$confirm = Read-Host "¿Continuar desinstalación? (s/N)"
+Write-Host "Iniciando desinstalador interactivo..." -ForegroundColor Cyan
+Write-Host ""
 
-if ($confirm -notmatch '^[sS]$') {
-    Write-Host "Desinstalación cancelada."
-    exit 0
-}
+# Ejecutar el uninstaller.exe directamente en la terminal actual
+& $uninstaller
 
-$terminalExe = "powershell"
-if (Get-Command pwsh -ErrorAction SilentlyContinue) {
-    $terminalExe = "pwsh"
-}
-
-$escapedUninstaller = $uninstaller -replace "'", "''"
-$command = "& '$escapedUninstaller'; Write-Host ''; Write-Host 'Vuelve pronto!' -ForegroundColor Yellow"
-
-Start-Process -FilePath $terminalExe -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $command) | Out-Null
-Write-Host "Abriendo desinstalación en una nueva terminal..."
+Write-Host ""
+Write-Host "Vuelve pronto!" -ForegroundColor Yellow
 exit 0

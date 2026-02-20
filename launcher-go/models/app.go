@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -43,7 +42,8 @@ type Model struct {
 	err              error
 	executing        bool
 	executionResult  int
-	executionError   string  // Error message from script execution
+	executionOutput  string  // Full stdout+stderr from script execution
+	outputScroll     int     // Scroll position for output view
 	width            int
 	height           int
 	headerShown      bool
@@ -113,6 +113,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseMsg:
 		if m.commandMode.active {
 			return m, m.commandMode.HandleMouse(msg)
+		}
+		// Handle mouse wheel in result view for scrolling
+		if m.state == ResultView {
+			if msg.Type == tea.MouseWheelUp {
+				if m.outputScroll > 0 {
+					m.outputScroll--
+				}
+			} else if msg.Type == tea.MouseWheelDown {
+				m.outputScroll++
+			}
 		}
 		return m, nil
 
@@ -202,11 +212,24 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, loadScripts(m.currentPath)
 					}
 					m.state = ExecutingView
+					m.outputScroll = 0  // Reset scroll position
 					return m, executeScript(m.currentScript, m.runDir)
 				}
 			} else if m.state == ResultView {
 				// Return to script view after seeing result
 				m.state = ScriptView
+				return m, nil
+			}
+		
+		// Arrow keys for scrolling in result view
+		case "up", "k":
+			if m.state == ResultView && m.outputScroll > 0 {
+				m.outputScroll--
+				return m, nil
+			}
+		case "down", "j":
+			if m.state == ResultView {
+				m.outputScroll++
 				return m, nil
 			}
 		
@@ -242,7 +265,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case scriptExecutedMsg:
 		m.executionResult = msg.exitCode
-		m.executionError = msg.errorOutput
+		m.executionOutput = msg.output
 		m.executing = false
 		m.state = ResultView
 		return m, nil
@@ -477,19 +500,84 @@ func (m Model) renderResultView() string {
 	
 	content := breadcrumb
 	
+	// Status header with exit code
 	if m.executionResult == 0 {
-		content += ui.SuccessStyle.Render("✓ Script completado exitosamente") + "\n"
+		content += ui.SuccessStyle.Render(fmt.Sprintf("✓ Script completado exitosamente (exit code: %d)", m.executionResult)) + "\n"
 	} else {
-		content += ui.ErrorStyle.Render(fmt.Sprintf("✗ El script falló con código: %d", m.executionResult)) + "\n"
-		
-		// Show error output if available
-		if m.executionError != "" {
-			content += "\n" + ui.ErrorStyle.Render("Error:") + "\n"
-			content += ui.DimStyle.Render(m.executionError) + "\n"
-		}
+		content += ui.ErrorStyle.Render(fmt.Sprintf("✗ Script falló (exit code: %d)", m.executionResult)) + "\n"
 	}
 	
-	content += "\n" + ui.DimStyle.Render("enter/./0/esc: volver  q: salir")
+	content += ui.DimStyle.Render("─────────────────────────────────────────────────────────────") + "\n"
+	
+	// Show scrollable output
+	if m.executionOutput != "" {
+		content += ui.NormalStyle.Render("Salida del script:") + "\n\n"
+		
+		// Use a fixed conservative width that works for most terminals
+		maxWidth := 80  // Standard terminal width
+		
+		// Split output into lines
+		rawLines := strings.Split(m.executionOutput, "\n")
+		wrappedLines := []string{}
+		
+		for _, line := range rawLines {
+			// Handle empty lines
+			if strings.TrimSpace(line) == "" {
+				wrappedLines = append(wrappedLines, "")
+				continue
+			}
+			
+			// Convert to runes for proper character counting
+			runes := []rune(line)
+			
+			// Keep wrapping until we process the entire line
+			for len(runes) > 0 {
+				if len(runes) <= maxWidth {
+					// This is the last chunk
+					wrappedLines = append(wrappedLines, string(runes))
+					break
+				} else {
+					// Cut at maxWidth and continue
+					wrappedLines = append(wrappedLines, string(runes[:maxWidth]))
+					runes = runes[maxWidth:]
+				}
+			}
+		}
+		
+		visibleHeight := m.height - 12  // Reserve space for header, footer, etc.
+		if visibleHeight < 5 {
+			visibleHeight = 5
+		}
+		
+		// Ensure scroll doesn't go beyond content
+		maxScroll := len(wrappedLines) - visibleHeight
+		if maxScroll < 0 {
+			maxScroll = 0
+		}
+		if m.outputScroll > maxScroll {
+			m.outputScroll = maxScroll
+		}
+		
+		start := m.outputScroll
+		end := start + visibleHeight
+		if end > len(wrappedLines) {
+			end = len(wrappedLines)
+		}
+		
+		for i := start; i < end; i++ {
+			content += wrappedLines[i] + "\n"
+		}
+		
+		// Show scroll indicator if there's more content
+		if len(wrappedLines) > visibleHeight {
+			scrollInfo := fmt.Sprintf("[Líneas %d-%d de %d]", start+1, end, len(wrappedLines))
+			content += "\n" + ui.DimStyle.Render(scrollInfo) + "\n"
+		}
+	} else {
+		content += ui.DimStyle.Render("(Sin salida)") + "\n"
+	}
+	
+	content += "\n" + ui.DimStyle.Render("↑↓/j/k/scroll: desplazar  enter/./0/esc: volver  q: salir")
 	
 	return content
 }
@@ -604,7 +692,7 @@ type scriptsLoadedMsg struct {
 
 type scriptExecutedMsg struct {
 	exitCode int
-	errorOutput string
+	output   string  // Combined stdout + stderr
 }
 
 type errorMsg struct {
@@ -633,20 +721,8 @@ func loadScripts(categoryPath string) tea.Cmd {
 
 func executeScript(script Script, workingDir string) tea.Cmd {
 	return tea.ExecProcess(getScriptCommand(script, workingDir), func(err error) tea.Msg {
-		exitCode := 0
-		errorOutput := ""
-		
-		if err != nil {
-			// Try to extract exit code from error
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				exitCode = exitErr.ExitCode()
-			} else {
-				exitCode = 1
-				errorOutput = err.Error()
-			}
-		}
-		
-		return scriptExecutedMsg{exitCode: exitCode, errorOutput: errorOutput}
+		exitCode, output := ExecuteScript(script, workingDir)
+		return scriptExecutedMsg{exitCode: exitCode, output: output}
 	})
 }
 

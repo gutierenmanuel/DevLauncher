@@ -4,6 +4,24 @@ Historial de cambios por versión del proyecto DevScripts.
 
 ---
 
+## v0.4.6 — 2026-02-20
+
+### 🔧 Mejoras
+- **Uninstaller limpia PATH del registro**: `uninstaller.exe` ahora elimina `DEVSCRIPTS_ROOT` de las variables de entorno del usuario y limpia todas las entradas `*devscripts*` del PATH permanente en el registro de Windows.
+- **Uninstaller limpia múltiples perfiles**: Ahora elimina el bloque DevScripts de ambos perfiles PowerShell (PS5 en `WindowsPowerShell/` y PS7 en `PowerShell/`) automáticamente.
+- **Script de desinstalación actualizado**: `desinstalar_devlauncher.ps1` ahora ejecuta `uninstaller.exe` directamente en la terminal actual sin abrir ventanas extras.
+
+### ✨ Nuevo en Launcher
+- **Exit code siempre visible**: Los resultados de ejecución ahora muestran el código de salida explícitamente: `(exit code: 0)` para éxito o `(exit code: 1, 2, ...)` para errores.
+- **Captura completa de output**: El launcher ahora captura y muestra tanto `stdout` como `stderr` completos de los scripts ejecutados.
+- **Output scrolleable**: 
+  - Usa la **rueda del ratón** o las **flechas ↑↓/j/k** para desplazarte por la salida del script.
+  - Indicador de posición: `[Líneas 1-20 de 150]` cuando hay más contenido.
+- **Text wrapping inteligente**: Las líneas largas se ajustan automáticamente al ancho de la terminal para evitar que el texto se corte por la derecha.
+- **Selección de texto habilitada**: Ahora puedes seleccionar y copiar texto del output usando **Shift + arrastre del ratón**.
+
+---
+
 ## v0.4.5 — 2026-02-19
 
 ### ✨ Nuevo

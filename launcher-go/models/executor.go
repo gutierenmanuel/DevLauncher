@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
 )
@@ -39,7 +38,7 @@ func getScriptCommand(script Script, workingDir string) *exec.Cmd {
 	return cmd
 }
 
-// ExecuteScript executes a script and returns the exit code and error output
+// ExecuteScript executes a script and returns the exit code and combined output (stdout+stderr)
 func ExecuteScript(script Script, workingDir string) (int, string) {
 	var cmd *exec.Cmd
 
@@ -67,52 +66,17 @@ func ExecuteScript(script Script, workingDir string) (int, string) {
 		cmd.Dir = workingDir
 	}
 
-	// Set stdout to terminal, capture stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	
-	// Capture stderr
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return 1, fmt.Sprintf("failed to create stderr pipe: %v", err)
-	}
+	// Capture both stdout and stderr
+	output, err := cmd.CombinedOutput()
 
-	// Execute
-	if err := cmd.Start(); err != nil {
-		return 1, fmt.Sprintf("failed to start script: %v", err)
-	}
-	
-	// Read stderr
-	stderrBytes := make([]byte, 0)
-	buf := make([]byte, 1024)
-	for {
-		n, err := stderrPipe.Read(buf)
-		if n > 0 {
-			stderrBytes = append(stderrBytes, buf[:n]...)
-			// Also write to terminal in real-time
-			os.Stderr.Write(buf[:n])
-		}
-		if err != nil {
-			break
-		}
-	}
-	
-	// Wait for completion
-	err = cmd.Wait()
-	
 	exitCode := 0
-	errorOutput := string(stderrBytes)
-	
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
 		} else {
 			exitCode = 1
-			if errorOutput == "" {
-				errorOutput = err.Error()
-			}
 		}
 	}
 
-	return exitCode, errorOutput
+	return exitCode, string(output)
 }

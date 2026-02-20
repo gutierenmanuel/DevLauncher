@@ -25,9 +25,10 @@ func main() {
 		}
 	}
 
-	// Start interactive TUI
+	// Start interactive TUI with text selection support
+	// Using WithMouseAllMotion enables mouse scrolling while still allowing text selection
 	model := models.NewModel()
-	p := tea.NewProgram(&model, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(&model, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
