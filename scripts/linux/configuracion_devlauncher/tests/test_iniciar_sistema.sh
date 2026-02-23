@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tests para scripts de iniciar_sistema
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Test: Verificar scripts de iniciar_sistema
 test_sistema_scripts_exist() {
