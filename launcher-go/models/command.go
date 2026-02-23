@@ -21,7 +21,7 @@ type CommandMode struct {
 	viewport viewport.Model
 }
 
-var commandSuggestions = []string{"help", "h", "list", "ls", "pwd", "cd", "search", "clear", "exit", "quit", "q"}
+var commandSuggestions = []string{"help", "h", "list", "ls", "pwd", "cd", "mkdir", "search", "clear", "exit", "quit", "q"}
 
 // NewCommandMode creates a new command mode
 func NewCommandMode() CommandMode {
@@ -93,7 +93,7 @@ func (c *CommandMode) AutoComplete(m *Model) {
 	}
 
 	cmd, argRaw, ok := splitCommandAndArg(value)
-	if !ok || (cmd != "cd" && cmd != "ls") {
+	if !ok || (cmd != "cd" && cmd != "ls" && cmd != "mkdir") {
 		return
 	}
 
@@ -251,6 +251,7 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 			"  pwd              - Mostrar directorio actual de ejecución\n" +
 			"  cd <ruta>        - Cambiar directorio de ejecución\n" +
 			"  ls [ruta]        - Listar archivos y carpetas\n" +
+			"  mkdir <nombre>    - Crear directorio\n" +
 			"  search <texto>   - Buscar scripts\n" +
 			"  clear            - Limpiar pantalla\n" +
 			"  exit, quit, q    - Salir del launcher\n" +
@@ -339,6 +340,26 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 				c.output += "  " + name + "\n"
 			}
 		}
+
+	case "mkdir":
+		if len(parts) < 2 {
+			c.output = ui.ErrorStyle.Render("Uso: mkdir <nombre>")
+			return nil
+		}
+
+		dirName := strings.Join(parts[1:], " ")
+		targetPath := dirName
+		if !filepath.IsAbs(dirName) {
+			targetPath = filepath.Join(m.runDir, dirName)
+		}
+
+		err := os.MkdirAll(targetPath, 0755)
+		if err != nil {
+			c.output = ui.ErrorStyle.Render("Error al crear directorio: " + err.Error())
+			return nil
+		}
+
+		c.output = ui.SuccessStyle.Render("✓ Directorio creado:") + "\n  " + targetPath
 
 	case "search":
 		if len(parts) < 2 {

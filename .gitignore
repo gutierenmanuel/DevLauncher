@@ -10,3 +10,5 @@ installer-go/assets/placeholder
 # Build artifacts
 outputs/*
 !outputs/.gitkeep
+
+local
