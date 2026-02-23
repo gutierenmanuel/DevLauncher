@@ -121,7 +121,7 @@ Código: GO_NOT_FOUND
 ### 1. Instalación Global con ejecutable (Recomendado)
 
 ```bash
-cd /home/lucas/DataProyects/Scripts_dev
+cd /Users/alfon/Documents/CODE/Scripts_dev
 ./outputs/installer-linux
 source ~/.bashrc  # o ~/.zshrc si usas zsh
 
@@ -133,7 +133,7 @@ source ~/.bashrc  # o ~/.zshrc si usas zsh
 ### 2. Uso Directo (Sin instalar)
 
 ```bash
-cd /home/lucas/DataProyects/Scripts_dev
+cd /home/lucas/Documents/CODE/Scripts_dev
 ./outputs/launcher-linux
 ```
 
