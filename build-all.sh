@@ -77,26 +77,26 @@ find "$ASSETS_DIR" -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null 
 echo ""
 ok "Pipeline completo — artefactos en dist/:"
 ls -lh "$DIST"/ | awk 'NR>1 {printf "  %-45s %s\n", $9, $5}'
-echo -e "\033[36mCarpeta de salida: $OUTPUTS_DIR\033[0m"
-echo -e "\033[36mVersión detectada: $VERSION_NUMBER\033[0m"
+echo -e "\033[36mCarpeta de salida: $DIST\033[0m"
+echo -e "\033[36mVersión detectada: $VER\033[0m"
 
 ARTIFACTS=(
-    "${VERSION_NUMBER}-devlauncher.exe"
-    "${VERSION_NUMBER}-devlauncher-linux"
-    "${VERSION_NUMBER}-devlauncher-mac"
-    "${VERSION_NUMBER}-devlauncher-inst.exe"
-    "${VERSION_NUMBER}-devlauncher-inst-linux"
+    "${VER}-devlauncher.exe"
+    "${VER}-devlauncher-linux"
+    "${VER}-devlauncher-mac"
+    "${VER}-devlauncher-inst.exe"
+    "${VER}-devlauncher-inst-linux"
 )
 
 echo ""
 echo -e "\033[36mArtefactos:\033[0m"
 for artifact in "${ARTIFACTS[@]}"; do
-    path="$OUTPUTS_DIR/$artifact"
+    path="$DIST/$artifact"
     if [[ -f "$path" ]]; then
         size=$(du -m "$path" | awk '{print $1}')
         printf "  %-40s %6s MB\n" "$artifact" "$size"
     else
-        write_warn "$artifact no fue generado"
+        warn "$artifact no fue generado"
     fi
 done
 
