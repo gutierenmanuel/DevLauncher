@@ -8,7 +8,7 @@ echo ""
 
 cd "$(dirname "$0")"
 ROOT_DIR="$(cd .. && pwd)"
-OUTPUT_DIR="$ROOT_DIR/outputs"
+OUTPUT_DIR="$ROOT_DIR/dist"
 ICON_PATH="$ROOT_DIR/static/devL.ico"
 SYSO_PATH="$PWD/rsrc_windows_amd64.syso"
 VERSION_FILE="$ROOT_DIR/VERSION.txt"

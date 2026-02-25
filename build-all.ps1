@@ -1,5 +1,5 @@
 # build-all.ps1 - Ejecuta el pipeline completo de build
-# Compila launchers + installer y deja artefactos en ./outputs
+# Compila launchers + installer y deja artefactos en ./dist
 # Uso:
 #   .\build-all.ps1
 
@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 $RootDir = $PSScriptRoot
 $LauncherBuild = Join-Path $RootDir "launcher-go\build.ps1"
 $InstallerBuild = Join-Path $RootDir "installer-go\build-installer.ps1"
-$OutputsDir = Join-Path $RootDir "outputs"
+$OutputsDir = Join-Path $RootDir "dist"
 $VersionFile = Join-Path $RootDir "VERSION.txt"
 $InitialLocation = Get-Location
 

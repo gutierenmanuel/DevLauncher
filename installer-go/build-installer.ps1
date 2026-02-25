@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 $InstallerDir = $PSScriptRoot
 $RepoRoot     = Split-Path -Parent $InstallerDir
 $AssetsDir    = Join-Path $InstallerDir "assets"
-$OutputsDir   = Join-Path $RepoRoot "outputs"
+$OutputsDir   = Join-Path $RepoRoot "dist"
 $IconPath     = Join-Path $RepoRoot "static\devL.ico"
 $VersionFile  = Join-Path $RepoRoot "VERSION.txt"
 $InstallerSyso = Join-Path $InstallerDir "rsrc_windows_amd64.syso"
@@ -97,7 +97,7 @@ function Prepare-AssetsForTarget([string]$TargetLauncherName, [string]$TargetLau
     $src = Join-Path $OutputsDir $TargetLauncherName
     $dest = Join-Path $AssetsDir $TargetLauncherDest
     if (-not (Test-Path $src)) {
-        throw "No encontrado en outputs: $TargetLauncherName"
+        throw "No encontrado en dist: $TargetLauncherName"
     }
     Copy-Item $src -Destination $dest -Force
     Write-Color "  Copiado: $TargetLauncherName -> $TargetLauncherDest" Gray

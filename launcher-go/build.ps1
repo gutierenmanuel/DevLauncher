@@ -23,7 +23,7 @@ if (-not $All -and -not $Windows -and -not $Linux -and -not $Mac) {
 
 $LauncherDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot    = Split-Path -Parent $LauncherDir
-$OutputDir   = Join-Path $RepoRoot "outputs"
+$OutputDir   = Join-Path $RepoRoot "dist"
 $IconPath    = Join-Path $RepoRoot "static\devL.ico"
 $SysoPath    = Join-Path $LauncherDir "rsrc_windows_amd64.syso"
 $VersionFile = Join-Path $RepoRoot "VERSION.txt"

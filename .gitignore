@@ -8,7 +8,14 @@ installer-go/assets/launcher-mac
 installer-go/assets/placeholder
 
 # Build artifacts
-outputs/*
-!outputs/.gitkeep
+dist/*
+!dist/.gitkeep
+
+# Carpeta legacy (reemplazada por dist/)
+outputs/
+
+# Binario local del launcher (compilado en dev)
+launcher-go/launcher
+launcher-go/launcher.exe
 
 local

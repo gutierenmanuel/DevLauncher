@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # build-all.sh - Ejecuta el pipeline completo de build
-# Compila launchers + installer y deja artefactos en ./outputs
+# Compila launchers + installer y deja artefactos en ./dist
 # Uso:
 #   ./build-all.sh
 
@@ -9,7 +9,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAUNCHER_BUILD="$ROOT_DIR/launcher-go/build.ps1"
 INSTALLER_BUILD="$ROOT_DIR/installer-go/build-installer.ps1"
-OUTPUTS_DIR="$ROOT_DIR/outputs"
+OUTPUTS_DIR="$ROOT_DIR/dist"
 VERSION_FILE="$ROOT_DIR/VERSION.txt"
 
 # --- Helpers ---

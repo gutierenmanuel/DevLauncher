@@ -7,7 +7,7 @@ set -euo pipefail
 INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$INSTALLER_DIR/.." && pwd)"
 ASSETS_DIR="$INSTALLER_DIR/assets"
-OUTPUTS_DIR="$ROOT/outputs"
+OUTPUTS_DIR="$ROOT/dist"
 ICON_PATH="$ROOT/static/devL.ico"
 VERSION_FILE="$ROOT/VERSION.txt"
 INSTALLER_SYSO="$INSTALLER_DIR/rsrc_windows_amd64.syso"
@@ -84,7 +84,7 @@ prepare_assets_for_target() {
     cp -r "$ROOT/static" "$ASSETS_DIR/static"
     cp "$ROOT/VERSION.txt" "$ASSETS_DIR/VERSION.txt"
     if [[ ! -f "$OUTPUTS_DIR/$launcher_src" ]]; then
-        echo "ERROR: launcher no encontrado en outputs: $launcher_src"
+        echo "ERROR: launcher no encontrado en dist: $launcher_src"
         exit 1
     fi
     cp "$OUTPUTS_DIR/$launcher_src" "$ASSETS_DIR/$launcher_dest"
