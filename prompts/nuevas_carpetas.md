@@ -39,6 +39,7 @@ Descripción corta y útil de lo que contiene esta categoría.
 
 Recomendaciones:
 
+- Añade el emoji en la primera linea lo primero despues del # 
 - Primera línea: header con emoji + nombre de carpeta.
 - Segunda línea útil: descripción clara (1 frase).
 - Evita iniciar la descripción con `#` para que sea tomada como texto.

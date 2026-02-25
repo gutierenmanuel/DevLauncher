@@ -33,6 +33,35 @@ echo -e "\033[35m║  Build All — DevLauncher v${VER}                 \033[0m"
 echo -e "\033[35m╚════════════════════════════════════════════════════════════╝\033[0m"
 echo ""
 
+# ── 0. Limpiar artefactos anteriores en dist/ ────────────────────────────────
+
+# Devuelve lista de artefactos devlauncher en dist/ (cualquier versión)
+find_dist_artifacts() {
+    find "$DIST" -maxdepth 1 -type f \
+        \( -name '*-devlauncher*' -o -name '*-devlauncher-inst*' \) \
+        2>/dev/null
+}
+
+# Elimina los artefactos encontrados e informa de cada uno
+clean_dist_artifacts() {
+    local artifacts
+    artifacts="$(find_dist_artifacts)"
+
+    if [[ -z "$artifacts" ]]; then
+        ok "dist/ ya estaba limpia"
+        return
+    fi
+
+    echo "$artifacts" | while IFS= read -r f; do
+        warn "Eliminando: $(basename "$f")"
+        rm -f "$f"
+    done
+    ok "Artefactos anteriores eliminados"
+}
+
+step "Limpiando dist/ antes del build..."
+clean_dist_artifacts
+
 # ── 1. Compilar launchers ─────────────────────────────────────────────────────
 step "Compilando launchers via launcher-go/build.sh..."
 bash "$ROOT_DIR/launcher-go/build.sh"

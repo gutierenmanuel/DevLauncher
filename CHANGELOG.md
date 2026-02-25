@@ -4,6 +4,43 @@ Historial de cambios por versión del proyecto DevScripts.
 
 ---
 
+## v0.4.7 — 2026-02-25
+
+### ✨ Nueva categoría: `git_utils`
+- **`estado_repo.sh`**: Vista completa del repositorio Git actual — rama, upstream (commits ahead/behind), cambios pendientes, entradas en stash y remotes configurados con sus URLs.
+- **`historial_commits.sh`**: Log visual interactivo con grafo, colores y filtros por autor, mensaje, hoy y última semana. Usa `less -R` para navegación cómoda.
+- **`limpiar_ramas.sh`**: Detecta automáticamente `main`/`master`, lista ramas locales ya mergeadas, las elimina previa confirmación y permite limpiarlas también en remotes. Incluye `git remote prune`.
+- **`push_todos_remotes.sh`**: Commit (con `git add -A` y mensaje interactivo) + push a todos los remotes en un único comando. Detecta si la rama no existe en el remote y crea el upstream automáticamente. Muestra resumen de éxito/fallo por remote.
+
+### ✨ Nueva categoría: `ciberseguridad`
+Estructura en 4 subcategorías con icono propio para el launcher:
+
+#### 🌐 redes
+- **`escaneo_puertos.sh`**: Escáner interactivo con `nmap` — modos rápido, completo, detección de servicios/versiones y OS. Opción de guardar resultado en `/tmp`.
+- **`analisis_dns.sh`**: Consulta registros A/AAAA/MX/NS/TXT/CNAME/SOA, whois del dominio y comprobación de listas negras DNSBL (Spamhaus, SpamCop, SORBS, Barracuda).
+- **`conexiones_activas.sh`**: Puertos en escucha con proceso asociado, conexiones establecidas, detección de IPs externas (no RFC1918), filtros por puerto/proceso y monitor en tiempo real.
+- **`geoip.sh`**: Geolocalización de IP o dominio via ip-api.com — país con emoji de bandera, ciudad, ISP, ASN, detección de VPN/Proxy/Hosting. Incluye consulta de la IP pública propia.
+
+#### 🕸️ web
+- **`cabeceras_http.sh`**: Semáforo visual (✓/✗/⚠) para 8 cabeceras de seguridad HTTP — HSTS (con validación de max-age), CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CORP, COOP. Alerta sobre cabeceras que exponen tecnología del servidor.
+- **`ssl_cert_info.sh`**: Inspector de certificados SSL/TLS — sujeto, emisor, SANs, fechas, días restantes con alerta a <30 días, cadena de confianza y verificación de soporte TLS 1.0/1.1.
+- **`subdominios.sh`**: Enumeración DNS por diccionario integrado de 80+ subdominios comunes. Resuelve A y CNAME, muestra progreso cada 20 intentos y guarda resultado en `/tmp`.
+
+#### 🖥️ sistema
+- **`auditar_ssh.sh`**: 7 checks sobre `sshd_config` con semáforo (PermitRootLogin, PasswordAuthentication, Port, MaxAuthTries, X11Forwarding, AllowUsers/Groups). Muestra últimos intentos de login fallidos y claves en `authorized_keys`.
+- **`firewall_status.sh`**: Auto-detecta el firewall activo (ufw / firewalld / iptables) y muestra sus reglas. Alerta si no hay ningún firewall configurado. Cruza con puertos en escucha.
+- **`usuarios_sospechosos.sh`**: Detecta usuarios con UID 0 extras, usuarios con shell válida, homes en rutas inusuales, miembros de grupos privilegiados (sudo, docker, adm, lxd…) y sesiones activas.
+
+#### 🔐 utilidades
+- **`generar_password.sh`**: 4 modos de generación — alfanumérico+símbolos, solo alfanumérico, passphrase diceware (desde `/usr/share/dict/words`) y PIN numérico. Muestra entropía estimada en bits. Sin escritura en disco.
+- **`verificar_hash.sh`**: Calcula MD5/SHA1/SHA256/SHA512 de archivos individuales o de todo un directorio. Permite comparar contra un hash conocido con resultado visual ✓/✗.
+- **`cifrar_archivo.sh`**: Cifrado/descifrado AES-256-CBC con PBKDF2 (310.000 iteraciones) via `openssl`. Confirmación de contraseña en cifrado, opción de eliminar el original tras cifrar.
+
+### 🔧 Mejoras en tooling
+- **`run.sh`** en la raíz: script de lanzamiento rápido que siempre compila el proyecto completo con `build-all.sh` antes de ejecutar el installer de Linux. Estructura en capas funcionales (puras / middleware / orquestación).
+
+---
+
 ## v0.4.6 — 2026-02-20
 
 ### 🔧 Mejoras

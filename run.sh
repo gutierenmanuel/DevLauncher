@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # run.sh — Instala DevLauncher en Linux.
-# Si existe el installer en dist/ lo usa directamente;
-# si no, compila todo con build-all.sh y entonces lo lanza.
+# Siempre compila desde fuente con build-all.sh y luego lanza el installer.
 
 set -euo pipefail
 
@@ -104,19 +103,14 @@ main() {
     local installer
     installer="$(resolve_installer_path "$DIST_DIR" "$version")"
 
-    if binary_ready "$installer"; then
-        _ok "Installer encontrado: $(basename "$installer")"
-    else
-        _warn "Installer no encontrado en dist/. Compilando desde fuente..."
-        build_all "$ROOT_DIR"
+    build_all "$ROOT_DIR"
 
-        if ! binary_ready "$installer"; then
-            _error "La compilación terminó pero el installer no está disponible: $installer"
-            exit 1
-        fi
-
-        _ok "Compilación completada"
+    if ! binary_ready "$installer"; then
+        _error "La compilación terminó pero el installer no está disponible: $installer"
+        exit 1
     fi
+
+    _ok "Compilación completada"
 
     launch_installer "$installer"
 }
