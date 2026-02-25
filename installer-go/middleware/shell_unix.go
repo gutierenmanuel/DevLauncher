@@ -1,6 +1,6 @@
 //go:build linux || darwin
 
-package installer
+package middleware
 
 import (
 	"os"
@@ -13,16 +13,13 @@ import (
 func ConfigureShell(installDir string) (string, error) {
 	rcFile := detectRCFile()
 
-	// Read existing content
 	existing := ""
 	if data, err := os.ReadFile(rcFile); err == nil {
 		existing = string(data)
 	}
 
-	// Remove old DevScripts block
 	existing = removeBlock(existing, "# DevScripts Installer", "# End DevScripts Installer")
 
-	// Build new block
 	block := buildUnixBlock(installDir)
 
 	content := strings.TrimRight(existing, "\n") + "\n\n" + block + "\n"
@@ -40,29 +37,7 @@ func ConfigureShell(installDir string) (string, error) {
 	return rcFile, nil
 }
 
-func detectRCFile() string {
-	home, _ := os.UserHomeDir()
-	shell := os.Getenv("SHELL")
-
-	switch {
-	case strings.Contains(shell, "zsh"):
-		return filepath.Join(home, ".zshrc")
-	case strings.Contains(shell, "bash"):
-		return filepath.Join(home, ".bashrc")
-	}
-
-	// Fallback: check which files exist
-	for _, f := range []string{".zshrc", ".bashrc"} {
-		path := filepath.Join(home, f)
-		if _, err := os.Stat(path); err == nil {
-			return path
-		}
-	}
-	return filepath.Join(home, ".bashrc")
-}
-
 // RemoveShellConfig removes the DevScripts block from the Unix shell rc file.
-// Returns the rc file path and any error.
 func RemoveShellConfig() (string, error) {
 	rcFile := detectRCFile()
 	data, err := os.ReadFile(rcFile)
@@ -75,6 +50,26 @@ func RemoveShellConfig() (string, error) {
 	cleaned := removeBlock(string(data), "# DevScripts Installer", "# End DevScripts Installer")
 	cleaned = strings.TrimRight(cleaned, "\n") + "\n"
 	return rcFile, os.WriteFile(rcFile, []byte(cleaned), 0644)
+}
+
+func detectRCFile() string {
+	home, _ := os.UserHomeDir()
+	shell := os.Getenv("SHELL")
+
+	switch {
+	case strings.Contains(shell, "zsh"):
+		return filepath.Join(home, ".zshrc")
+	case strings.Contains(shell, "bash"):
+		return filepath.Join(home, ".bashrc")
+	}
+
+	for _, f := range []string{".zshrc", ".bashrc"} {
+		path := filepath.Join(home, f)
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return filepath.Join(home, ".bashrc")
 }
 
 func buildUnixBlock(installDir string) string {
@@ -99,7 +94,6 @@ devscript() {
 # End DevScripts Installer`
 }
 
-// removeBlock removes lines between (and including) startMarker and endMarker.
 func removeBlock(content, startMarker, endMarker string) string {
 	lines := strings.Split(content, "\n")
 	var result []string

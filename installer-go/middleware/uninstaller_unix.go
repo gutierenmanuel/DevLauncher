@@ -1,12 +1,13 @@
 //go:build linux || darwin
 
-package installer
+package middleware
 
 import (
 	"os"
 	"path/filepath"
 )
 
+// GenerateUninstaller writes an uninstaller shell script to installDir.
 func GenerateUninstaller(installDir string) error {
 	content := `#!/usr/bin/env bash
 set -euo pipefail
@@ -67,8 +68,5 @@ echo "DevLauncher desinstalado (excepto scripts preservados)."
 `
 
 	path := filepath.Join(installDir, "uninstaller.sh")
-	if err := os.WriteFile(path, []byte(content), 0755); err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile(path, []byte(content), 0755)
 }

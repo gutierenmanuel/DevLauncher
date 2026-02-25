@@ -1,18 +1,20 @@
 //go:build windows
 
-package installer
+package middleware
 
 import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/lucas/installer/core"
 )
 
-// CreateDesktopShortcut creates a DevLauncher shortcut on the user's Desktop.
+// CreateDesktopShortcut creates a DevLauncher shortcut on the Windows Desktop.
 // Returns the created shortcut path.
 func CreateDesktopShortcut(installDir string) (string, error) {
-	launcherPath := GetLauncherPath(installDir)
+	launcherPath := core.GetLauncherPath(installDir)
 	iconPath := filepath.Join(installDir, "static", "devL.ico")
 
 	quotePS := func(s string) string {

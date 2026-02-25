@@ -1,12 +1,14 @@
 //go:build linux || darwin
 
-package installer
+package middleware
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/lucas/installer/core"
 )
 
 // CreateDesktopShortcut creates a DevLauncher shortcut on the user's Desktop.
@@ -21,7 +23,7 @@ func CreateDesktopShortcut(installDir string) (string, error) {
 		return "", err
 	}
 
-	launcherPath := GetLauncherPath(installDir)
+	launcherPath := core.GetLauncherPath(installDir)
 
 	if runtime.GOOS == "darwin" {
 		linkPath := filepath.Join(desktopDir, "DevLauncher")

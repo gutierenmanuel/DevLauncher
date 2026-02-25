@@ -1,6 +1,6 @@
 //go:build windows
 
-package installer
+package middleware
 
 import (
 	"os"
@@ -9,9 +9,8 @@ import (
 	"strings"
 )
 
-// ConfigureShell configures both Windows PowerShell and PowerShell 7 profiles
-// with DevScripts settings.
-// Returns the written profile paths and any error.
+// ConfigureShell configures both Windows PowerShell profiles with DevScripts settings.
+// Returns the written profile paths joined by comma and any error.
 func ConfigureShell(installDir string) (string, error) {
 	profilePaths, err := getWindowsProfilePaths()
 	if err != nil {
@@ -41,17 +40,14 @@ func ConfigureShell(installDir string) (string, error) {
 		if err := os.WriteFile(profilePath, []byte(content), 0644); err != nil {
 			return "", err
 		}
-
 		written = append(written, profilePath)
 	}
 
 	return strings.Join(written, ", "), nil
 }
 
-// RemoveShellConfig removes the DevScripts block from both Windows PowerShell
-// and PowerShell 7 profiles,
-// and cleans DEVSCRIPTS_ROOT + install dir from the user registry PATH.
-// Returns the cleaned profile paths and any error.
+// RemoveShellConfig removes the DevScripts block from Windows PowerShell profiles
+// and cleans DEVSCRIPTS_ROOT from the user registry PATH.
 func RemoveShellConfig() (string, error) {
 	profilePaths, err := getWindowsProfilePaths()
 	if err != nil {
@@ -74,12 +70,10 @@ func RemoveShellConfig() (string, error) {
 		if err := os.WriteFile(profilePath, []byte(cleaned), 0644); err != nil {
 			return strings.Join(cleanedPaths, ", "), err
 		}
-
 		cleanedPaths = append(cleanedPaths, profilePath)
 	}
 
-	// Remove DEVSCRIPTS_ROOT and its path from the user registry environment.
-	installDir := GetInstallDir()
+	installDir := getInstallDirWin()
 	_ = removeFromRegistryEnv(installDir)
 
 	return strings.Join(cleanedPaths, ", "), nil
@@ -106,18 +100,18 @@ func getWindowsProfilePaths() ([]string, error) {
 		seen[norm] = struct{}{}
 		unique = append(unique, p)
 	}
-
 	return unique, nil
 }
 
-// removeFromRegistryEnv removes DEVSCRIPTS_ROOT from user env and strips any
-// DevLauncher/devscripts-related entries from the user's permanent PATH in the registry.
+func getInstallDirWin() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".devlauncher")
+}
+
 func removeFromRegistryEnv(installDir string) error {
 	script := `
 $installDir = "` + installDir + `"
-# Remove DEVSCRIPTS_ROOT from user environment
 [System.Environment]::SetEnvironmentVariable("DEVSCRIPTS_ROOT", $null, "User")
-# Strip install dir and any *.devlauncher* or *devscripts* entries from user PATH
 $path = [System.Environment]::GetEnvironmentVariable("PATH", "User")
 if ($path) {
     $parts = $path -split ";" |
@@ -168,7 +162,6 @@ function devscript {
 # End DevScripts Installer`
 }
 
-// removeBlock removes lines between (and including) startMarker and endMarker.
 func removeBlock(content, startMarker, endMarker string) string {
 	lines := strings.Split(content, "\n")
 	var result []string
