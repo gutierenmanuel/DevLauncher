@@ -5,7 +5,7 @@
 
 # Cargar librería común
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/lib/common.sh"
+source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/lib/common.sh"
 
 set -e
 trap 'error "El script falló en la línea $LINENO"' ERR
@@ -41,8 +41,8 @@ echo -e "${PURPLE}  1/4 - Inicializando Frontend${NC}"
 echo -e "${PURPLE}════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Ejecutar init_frontend_project.sh
-if ! bash "$SCRIPT_DIR/init_frontend_project.sh"; then
+# Ejecutar init_frontend_project.sh (en la carpeta hermana frontend/)
+if ! bash "$SCRIPT_DIR/../frontend/init_frontend_project.sh"; then
     handle_error "FRONTEND_INIT_FAILED" "Falló la inicialización del frontend" \
         "Verifica los errores anteriores"
     exit 1

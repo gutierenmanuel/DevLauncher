@@ -5,7 +5,7 @@
 
 # Cargar librería común
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/lib/common.sh"
+source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/lib/common.sh"
 
 set -e
 trap 'error "El script falló en la línea $LINENO"' ERR
@@ -24,6 +24,21 @@ progress "Verificando dependencias..."
 check_command "pnpm" "PNPM_NOT_FOUND" || exit 1
 show_version "pnpm" "--version"
 echo ""
+
+# Pedir sudo por adelantado (Storybook/Playwright necesita instalar dependencias del sistema)
+if [ "$(uname)" != "Darwin" ] && [ "$EUID" -ne 0 ]; then
+    info "Se necesitan permisos de administrador para instalar dependencias de Playwright"
+    if ! sudo -v 2>/dev/null; then
+        warning "No se pudo obtener sudo. Playwright podría fallar al instalar browsers."
+    else
+        # Mantener sudo activo en segundo plano
+        (while true; do sudo -n true; sleep 50; done) 2>/dev/null &
+        SUDO_KEEPALIVE_PID=$!
+        trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null; error "El script falló en la línea $LINENO"' ERR EXIT
+        success "Permisos de administrador obtenidos"
+    fi
+    echo ""
+fi
 
 # Verificar si el directorio ya existe
 if [ -d "$PROJECT_NAME" ]; then
@@ -45,7 +60,7 @@ fi
 # 1. CREAR PROYECTO VITE + REACT
 # ==========================================
 progress "📦 Creando proyecto con Vite + React..."
-if ! pnpm create vite $PROJECT_NAME --template react-ts; then
+if ! pnpm create vite@latest $PROJECT_NAME --template react-ts <<< ""; then
     handle_error "PROJECT_INIT_FAILED" "Falló la creación del proyecto con Vite" \
         "Verifica tu conexión a internet"
     exit 1

@@ -19,3 +19,6 @@ launcher-go/launcher
 launcher-go/launcher.exe
 
 local
+
+# Tests - ignorar outputs generados, no los runners
+tests/**/output/
