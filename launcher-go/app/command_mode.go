@@ -1,4 +1,4 @@
-package models
+package app
 
 import (
 	"fmt"
@@ -7,37 +7,37 @@ import (
 	"sort"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/lucas/launcher/core"
 	"github.com/lucas/launcher/ui"
 )
 
-// CommandMode adds a mini terminal for custom commands
+// CommandMode is the mini terminal overlay in the TUI.
 type CommandMode struct {
-	active bool
-	input  textinput.Model
-	output string
+	active   bool
+	input    textinput.Model
+	output   string
 	viewport viewport.Model
 }
 
-var commandSuggestions = []string{"help", "h", "list", "ls", "pwd", "cd", "mkdir", "search", "clear", "exit", "quit", "q"}
-
-// NewCommandMode creates a new command mode
+// NewCommandMode creates a new CommandMode with default settings.
 func NewCommandMode() CommandMode {
 	ti := textinput.New()
 	ti.Placeholder = "comando (help para ayuda)"
 	ti.CharLimit = 100
 	ti.Width = 50
-	
+
 	return CommandMode{
-		active: false,
-		input:  ti,
-		output: "",
+		active:   false,
+		input:    ti,
+		output:   "",
 		viewport: viewport.New(80, 10),
 	}
 }
 
+// SetSize adjusts the viewport to fit the current terminal dimensions.
 func (c *CommandMode) SetSize(width, height int) {
 	vw := width - 4
 	if vw < 20 {
@@ -59,6 +59,7 @@ func (c *CommandMode) syncViewport() {
 	c.viewport.GotoTop()
 }
 
+// AutoComplete attempts to autocomplete the current input value.
 func (c *CommandMode) AutoComplete(m *Model) {
 	value := c.input.Value()
 	trimmed := strings.TrimSpace(value)
@@ -69,7 +70,7 @@ func (c *CommandMode) AutoComplete(m *Model) {
 	if !strings.Contains(trimmed, " ") {
 		prefix := trimmed
 		matches := make([]string, 0)
-		for _, cmd := range commandSuggestions {
+		for _, cmd := range core.CommandSuggestions {
 			if strings.HasPrefix(cmd, prefix) {
 				matches = append(matches, cmd)
 			}
@@ -82,7 +83,7 @@ func (c *CommandMode) AutoComplete(m *Model) {
 			c.input.SetValue(matches[0] + " ")
 			return
 		}
-		lcp := longestCommonPrefix(matches)
+		lcp := core.LongestCommonPrefix(matches)
 		if len(lcp) > len(prefix) {
 			c.input.SetValue(lcp)
 			return
@@ -92,7 +93,7 @@ func (c *CommandMode) AutoComplete(m *Model) {
 		return
 	}
 
-	cmd, argRaw, ok := splitCommandAndArg(value)
+	cmd, argRaw, ok := core.SplitCommandAndArg(value)
 	if !ok || (cmd != "cd" && cmd != "ls" && cmd != "mkdir") {
 		return
 	}
@@ -116,7 +117,7 @@ func (c *CommandMode) AutoComplete(m *Model) {
 
 	searchDir := filepath.Dir(probe)
 	prefix := filepath.Base(probe)
-	if strings.HasSuffix(probe, string(filepath.Separator)) || strings.HasSuffix(probe, "/") || strings.HasSuffix(probe, "\\") {
+	if strings.HasSuffix(probe, string(filepath.Separator)) || strings.HasSuffix(probe, "/") {
 		searchDir = probe
 		prefix = ""
 	}
@@ -130,7 +131,7 @@ func (c *CommandMode) AutoComplete(m *Model) {
 		name  string
 		isDir bool
 	}
-	matches := make([]candidate, 0)
+	var matches []candidate
 	prefixLower := strings.ToLower(prefix)
 	for _, entry := range entries {
 		name := entry.Name()
@@ -154,7 +155,7 @@ func (c *CommandMode) AutoComplete(m *Model) {
 		selectedName = matches[0].name
 		selectedDir = matches[0].isDir
 	} else {
-		lcp := longestCommonPrefix(names)
+		lcp := core.LongestCommonPrefix(names)
 		if len(lcp) <= len(prefix) {
 			c.output = "Sugerencias:\n"
 			for _, match := range matches {
@@ -181,8 +182,7 @@ func (c *CommandMode) AutoComplete(m *Model) {
 			completedArg = "~" + strings.TrimPrefix(completedFull, home)
 		}
 	} else if !isAbs {
-		rel, relErr := filepath.Rel(m.runDir, completedFull)
-		if relErr == nil {
+		if rel, relErr := filepath.Rel(m.runDir, completedFull); relErr == nil {
 			completedArg = rel
 		}
 	}
@@ -190,41 +190,11 @@ func (c *CommandMode) AutoComplete(m *Model) {
 	c.input.SetValue(cmd + " " + completedArg)
 }
 
-func splitCommandAndArg(value string) (string, string, bool) {
-	trimmed := strings.TrimSpace(value)
-	idx := strings.Index(trimmed, " ")
-	if idx == -1 {
-		return "", "", false
-	}
-	cmd := strings.TrimSpace(trimmed[:idx])
-	arg := strings.TrimSpace(trimmed[idx+1:])
-	if cmd == "" {
-		return "", "", false
-	}
-	return cmd, arg, true
-}
-
-func longestCommonPrefix(items []string) string {
-	if len(items) == 0 {
-		return ""
-	}
-	prefix := items[0]
-	for _, item := range items[1:] {
-		for !strings.HasPrefix(item, prefix) {
-			if prefix == "" {
-				return ""
-			}
-			prefix = prefix[:len(prefix)-1]
-		}
-	}
-	return prefix
-}
-
+// HandleMouse scrolls the output viewport on mouse wheel events.
 func (c *CommandMode) HandleMouse(msg tea.MouseMsg) tea.Cmd {
 	if !c.active || c.output == "" {
 		return nil
 	}
-
 	switch msg.String() {
 	case "wheel up":
 		c.viewport.LineUp(3)
@@ -234,7 +204,7 @@ func (c *CommandMode) HandleMouse(msg tea.MouseMsg) tea.Cmd {
 	return nil
 }
 
-// HandleCommand processes a command
+// HandleCommand parses and executes a command string.
 func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 	parts := strings.Fields(cmd)
 	if len(parts) == 0 {
@@ -251,19 +221,19 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 			"  pwd              - Mostrar directorio actual de ejecución\n" +
 			"  cd <ruta>        - Cambiar directorio de ejecución\n" +
 			"  ls [ruta]        - Listar archivos y carpetas\n" +
-			"  mkdir <nombre>    - Crear directorio\n" +
+			"  mkdir <nombre>   - Crear directorio\n" +
 			"  search <texto>   - Buscar scripts\n" +
 			"  clear            - Limpiar pantalla\n" +
 			"  exit, quit, q    - Salir del launcher\n" +
 			"  :1, :2, :3...    - Ir directamente al item N"
 
 	case "list":
-		if m.state == CategoryView {
+		if m.state == core.CategoryView {
 			c.output = fmt.Sprintf("Categorías: %d\n", len(m.categories))
 			for i, cat := range m.categories {
 				c.output += fmt.Sprintf("  [%d] %s %s (%d scripts)\n", i+1, cat.Icon, cat.Name, cat.ScriptCount)
 			}
-		} else if m.state == ScriptView {
+		} else if m.state == core.ScriptView {
 			c.output = fmt.Sprintf("Scripts en %s: %d\n", m.currentCategory.Name, len(m.scripts))
 			for i, script := range m.scripts {
 				c.output += fmt.Sprintf("  [%d] %s\n", i+1, script.Name)
@@ -287,18 +257,16 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 				target = filepath.Join(m.runDir, target)
 			}
 		}
-
 		resolved, err := filepath.Abs(target)
 		if err != nil {
 			c.output = ui.ErrorStyle.Render("Ruta inválida")
-			return nil
+			break
 		}
 		info, err := os.Stat(resolved)
 		if err != nil || !info.IsDir() {
 			c.output = ui.ErrorStyle.Render("Directorio no encontrado")
-			return nil
+			break
 		}
-
 		m.runDir = resolved
 		c.output = ui.SuccessStyle.Render("Directorio cambiado:") + "\n  " + resolved
 
@@ -313,13 +281,11 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 				listPath = resolved
 			}
 		}
-
 		entries, err := os.ReadDir(listPath)
 		if err != nil {
-			c.output = ui.ErrorStyle.Render("No se pudo listar: "+err.Error())
-			return nil
+			c.output = ui.ErrorStyle.Render("No se pudo listar: " + err.Error())
+			break
 		}
-
 		names := make([]string, 0, len(entries))
 		for _, entry := range entries {
 			name := entry.Name()
@@ -331,7 +297,6 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 			names = append(names, name)
 		}
 		sort.Strings(names)
-
 		c.output = fmt.Sprintf("Contenido: %s\n", listPath)
 		if len(names) == 0 {
 			c.output += "  (vacío)"
@@ -344,43 +309,38 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 	case "mkdir":
 		if len(parts) < 2 {
 			c.output = ui.ErrorStyle.Render("Uso: mkdir <nombre>")
-			return nil
+			break
 		}
-
 		dirName := strings.Join(parts[1:], " ")
 		targetPath := dirName
 		if !filepath.IsAbs(dirName) {
 			targetPath = filepath.Join(m.runDir, dirName)
 		}
-
-		err := os.MkdirAll(targetPath, 0755)
-		if err != nil {
+		if err := os.MkdirAll(targetPath, 0755); err != nil {
 			c.output = ui.ErrorStyle.Render("Error al crear directorio: " + err.Error())
-			return nil
+			break
 		}
-
 		c.output = ui.SuccessStyle.Render("✓ Directorio creado:") + "\n  " + targetPath
 
 	case "search":
 		if len(parts) < 2 {
 			c.output = ui.ErrorStyle.Render("Uso: search <texto>")
-		} else {
-			query := strings.ToLower(strings.Join(parts[1:], " "))
-			c.output = fmt.Sprintf("Buscando: %s\n", query)
-			
-			if m.state == CategoryView {
-				for i, cat := range m.categories {
-					if strings.Contains(strings.ToLower(cat.Name), query) ||
-						strings.Contains(strings.ToLower(cat.Description), query) {
-						c.output += fmt.Sprintf("  [%d] %s %s\n", i+1, cat.Icon, cat.Name)
-					}
+			break
+		}
+		query := strings.ToLower(strings.Join(parts[1:], " "))
+		c.output = fmt.Sprintf("Buscando: %s\n", query)
+		if m.state == core.CategoryView {
+			for i, cat := range m.categories {
+				if strings.Contains(strings.ToLower(cat.Name), query) ||
+					strings.Contains(strings.ToLower(cat.Description), query) {
+					c.output += fmt.Sprintf("  [%d] %s %s\n", i+1, cat.Icon, cat.Name)
 				}
-			} else if m.state == ScriptView {
-				for i, script := range m.scripts {
-					if strings.Contains(strings.ToLower(script.Name), query) ||
-						strings.Contains(strings.ToLower(script.Description), query) {
-						c.output += fmt.Sprintf("  [%d] %s\n", i+1, script.Name)
-					}
+			}
+		} else if m.state == core.ScriptView {
+			for i, script := range m.scripts {
+				if strings.Contains(strings.ToLower(script.Name), query) ||
+					strings.Contains(strings.ToLower(script.Description), query) {
+					c.output += fmt.Sprintf("  [%d] %s\n", i+1, script.Name)
 				}
 			}
 		}
@@ -389,24 +349,25 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 		c.output = ""
 
 	case "exit", "quit", "q":
+		c.syncViewport()
 		return tea.Quit
 
 	default:
-		// Check for :N syntax (go to item N)
 		if strings.HasPrefix(parts[0], ":") {
 			numStr := strings.TrimPrefix(parts[0], ":")
 			var num int
 			fmt.Sscanf(numStr, "%d", &num)
 			num-- // Convert to 0-based index
-			
-			if m.state == CategoryView && num >= 0 && num < len(m.categories) {
+			if m.state == core.CategoryView && num >= 0 && num < len(m.categories) {
 				m.currentCategory = m.categories[num]
-				m.state = ScriptView
+				m.currentPath = m.currentCategory.Path
+				m.state = core.ScriptView
+				m.headerShown = true
 				c.active = false
 				return loadScripts(m.currentCategory.Path)
-			} else if m.state == ScriptView && num >= 0 && num < len(m.scripts) {
+			} else if m.state == core.ScriptView && num >= 0 && num < len(m.scripts) {
 				m.currentScript = m.scripts[num]
-				m.state = ExecutingView
+				m.state = core.ExecutingView
 				c.active = false
 				return executeScript(m.currentScript, m.runDir)
 			} else {
@@ -418,25 +379,20 @@ func (c *CommandMode) HandleCommand(cmd string, m *Model) tea.Cmd {
 	}
 
 	c.syncViewport()
-
 	return nil
 }
 
-// View renders the command mode
+// View renders the command mode overlay.
 func (c *CommandMode) View() string {
 	if !c.active {
 		return ""
 	}
-
 	result := "\n" + ui.DimStyle.Render("─────────────────────────────────────────────────────────") + "\n"
 	result += ui.TitleStyle.Render("● Terminal de Comandos") + "\n"
 	result += c.input.View() + "\n"
-	
 	if c.output != "" {
 		result += "\n" + c.viewport.View() + "\n"
 	}
-	
 	result += "\n" + ui.DimStyle.Render("tab: autocompletar  esc: cerrar terminal  rueda: scroll salida")
-	
 	return result
 }

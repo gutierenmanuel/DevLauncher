@@ -1,5 +1,46 @@
 # Copilot Instructions (DevLauncher)
 
+## Sobre el proyecto
+
+**DevLauncher** es una consola interactiva TUI (Terminal User Interface) diseñada para lanzar comandos y scripts propios desde cualquier parte del sistema operativo. El objetivo principal es centralizar y organizar herramientas personalizadas (scripts de shell, comandos, utilidades) en un único punto de acceso interactivo, eliminando la necesidad de recordar rutas o escribir comandos largos manualmente.
+
+El proyecto está compuesto por dos binarios principales:
+- **launcher-go**: la interfaz TUI interactiva con la que el usuario navega y ejecuta comandos.
+- **installer-go**: el instalador/desinstalador que configura DevLauncher en el sistema del usuario.
+
+Ambos están escritos en **Go** y apuntan a ser multiplataforma (Linux, macOS, Windows).
+
+---
+
+## Plan de refactorización: Programación Funcional
+
+Todo el código Go de `installer-go/` y `launcher-go/` será refactorizado aplicando principios de **programación funcional**. El objetivo es mejorar la testabilidad, la composabilidad y la claridad del flujo de datos.
+
+### Estructura de carpetas objetivo (por módulo)
+
+```
+installer-go/
+  core/        → Funciones puras: transformaciones, validaciones, parseo, lógica sin efectos secundarios
+  middleware/  → Funciones impuras: I/O, sistema de archivos, red, interacción con el SO
+  app/         → Orquestación: compone core y middleware en flujos de alto nivel (entry points)
+
+launcher-go/
+  core/        → Funciones puras: construcción de modelos, filtrado, ordenamiento, lógica de negocio
+  middleware/  → Funciones impuras: lectura de archivos de configuración, ejecución de comandos, logging
+  app/         → Orquestación: inicialización del TUI, enrutamiento de eventos, composición de capas
+```
+
+### Reglas de la refactorización
+
+- **`core/`**: solo funciones puras. Sin efectos secundarios, sin I/O, sin estado global. Deben ser 100% testeables sin mocks.
+- **`middleware/`**: funciones que interactúan con el mundo exterior (archivos, sistema operativo, red, procesos). Deben recibir dependencias como parámetros (inyección explícita) en lugar de usar globales.
+- **`app/`**: punto de entrada de cada módulo. No contiene lógica de negocio propia; únicamente compone y conecta `core` y `middleware`.
+- Preferir **funciones sobre métodos** cuando no haya estado mutable.
+- Preferir **valores de retorno explícitos** (`value, error`) sobre panics o efectos implícitos.
+- Evitar estado global; pasar configuración como parámetros o estructuras de contexto.
+
+---
+
 ## Uso obligatorio del índice de prompts
 
 - Antes de responder tareas no triviales, consulta `prompts/index.md`.
