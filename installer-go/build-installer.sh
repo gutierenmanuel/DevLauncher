@@ -39,6 +39,22 @@ INSTALLER_LINUX="$VERSION_NUMBER-devlauncher-inst-linux"
 LEGACY_UNINSTALLER_WIN="$VERSION_NUMBER-devlauncher-uninst.exe"
 LEGACY_UNINSTALLER_LINUX="$VERSION_NUMBER-devlauncher-uninst-linux"
 
+target_spec() {
+    local target="$1"
+    case "$target" in
+        windows)
+            echo "$LAUNCHER_WIN|launcher.exe|uninstaller.exe|windows|amd64|$INSTALLER_WIN"
+            ;;
+        linux)
+            echo "$LAUNCHER_LINUX|launcher-linux|uninstaller-linux|linux|amd64|$INSTALLER_LINUX"
+            ;;
+        *)
+            echo "ERROR: target no soportado: $target" >&2
+            return 1
+            ;;
+    esac
+}
+
 echo "Detected version: $VERSION_NUMBER"
 
 mkdir -p "$OUTPUTS_DIR"
@@ -91,6 +107,16 @@ prepare_assets_for_target() {
     echo "  Copiado: $launcher_src -> $launcher_dest"
 }
 
+build_uninstaller_asset() {
+    local target="$1"
+    local uninstaller_asset="$2"
+    local goos="$3"
+    local goarch="$4"
+    step "Compilando asset de uninstaller para $target..."
+    GOOS="$goos" GOARCH="$goarch" go build -ldflags="-s -w" -trimpath -o "$ASSETS_DIR/$uninstaller_asset" ./cmd/uninstaller
+    echo "  Creado: $uninstaller_asset"
+}
+
 # 4. go mod tidy
 step "Ejecutando go mod tidy..."
 cd "$INSTALLER_DIR"
@@ -98,19 +124,23 @@ go mod tidy
 
 # 5. Build Windows installer with Windows-only launcher asset
 step "Compilando installer Windows (assets Windows only)..."
-prepare_assets_for_target "$LAUNCHER_WIN" "launcher.exe"
+IFS='|' read -r WIN_LAUNCHER WIN_LAUNCHER_ASSET WIN_UNINSTALLER_ASSET WIN_GOOS WIN_GOARCH WIN_OUTPUT <<< "$(target_spec windows)"
+prepare_assets_for_target "$WIN_LAUNCHER" "$WIN_LAUNCHER_ASSET"
+build_uninstaller_asset "windows" "$WIN_UNINSTALLER_ASSET" "$WIN_GOOS" "$WIN_GOARCH"
 if [[ -f "$ICON_PATH" ]]; then
     go run github.com/akavel/rsrc@latest -ico "$ICON_PATH" -o "$INSTALLER_SYSO" >/dev/null 2>&1
     echo "  Icono aplicado a installer.exe"
 else
     warn "Icono no encontrado: $ICON_PATH"
 fi
-GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -trimpath -o "$OUTPUTS_DIR/$INSTALLER_WIN" .
+GOOS="$WIN_GOOS" GOARCH="$WIN_GOARCH" go build -ldflags="-s -w" -trimpath -o "$OUTPUTS_DIR/$WIN_OUTPUT" .
 
 # 6. Build Linux installer with Linux-only launcher asset
 step "Compilando installer Linux (assets Linux only)..."
-prepare_assets_for_target "$LAUNCHER_LINUX" "launcher-linux"
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -trimpath -o "$OUTPUTS_DIR/$INSTALLER_LINUX" .
+IFS='|' read -r LINUX_LAUNCHER LINUX_LAUNCHER_ASSET LINUX_UNINSTALLER_ASSET LINUX_GOOS LINUX_GOARCH LINUX_OUTPUT <<< "$(target_spec linux)"
+prepare_assets_for_target "$LINUX_LAUNCHER" "$LINUX_LAUNCHER_ASSET"
+build_uninstaller_asset "linux" "$LINUX_UNINSTALLER_ASSET" "$LINUX_GOOS" "$LINUX_GOARCH"
+GOOS="$LINUX_GOOS" GOARCH="$LINUX_GOARCH" go build -ldflags="-s -w" -trimpath -o "$OUTPUTS_DIR/$LINUX_OUTPUT" .
 
 # 7. Clean assets
 step "Limpiando assets temporales..."

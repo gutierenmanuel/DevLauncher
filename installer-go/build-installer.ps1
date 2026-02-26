@@ -31,6 +31,36 @@ $LauncherMacName     = "$VersionNumber-devlauncher-mac"
 $InstallerWinName    = "$VersionNumber-devlauncher-inst.exe"
 $InstallerLinuxName  = "$VersionNumber-devlauncher-inst-linux"
 
+function Get-TargetBuildSpec([string]$Target) {
+    switch ($Target.ToLowerInvariant()) {
+        "windows" {
+            return @{
+                Target = "windows"
+                GOOS = "windows"
+                GOARCH = "amd64"
+                LauncherName = $LauncherWinName
+                LauncherAsset = "launcher.exe"
+                UninstallerAsset = "uninstaller.exe"
+                OutputName = $InstallerWinName
+            }
+        }
+        "linux" {
+            return @{
+                Target = "linux"
+                GOOS = "linux"
+                GOARCH = "amd64"
+                LauncherName = $LauncherLinuxName
+                LauncherAsset = "launcher-linux"
+                UninstallerAsset = "uninstaller-linux"
+                OutputName = $InstallerLinuxName
+            }
+        }
+        default {
+            throw "Target no soportado: $Target"
+        }
+    }
+}
+
 function Write-Color($msg, $color = "White") { Write-Host $msg -ForegroundColor $color }
 function Write-Step($msg)    { Write-Color "==> $msg" Cyan }
 function Write-Success($msg) { Write-Color "✓  $msg" Green }
@@ -103,6 +133,16 @@ function Prepare-AssetsForTarget([string]$TargetLauncherName, [string]$TargetLau
     Write-Color "  Copiado: $TargetLauncherName -> $TargetLauncherDest" Gray
 }
 
+function Build-UninstallerAsset([hashtable]$Spec) {
+    $uninstallerPath = Join-Path $AssetsDir $Spec.UninstallerAsset
+    Write-Step "Compilando asset de uninstaller para $($Spec.Target)..."
+    $env:GOOS = $Spec.GOOS
+    $env:GOARCH = $Spec.GOARCH
+    & go build -ldflags="-s -w" -trimpath -o $uninstallerPath ./cmd/uninstaller
+    if ($LASTEXITCODE -ne 0) { throw "Build uninstaller ($($Spec.Target)) falló" }
+    Write-Color "  Creado: $($Spec.UninstallerAsset)" Gray
+}
+
 # 4. go mod tidy
 Write-Step "Ejecutando go mod tidy..."
 Push-Location $InstallerDir
@@ -115,10 +155,12 @@ try {
 Write-Step "Compilando installer Windows (assets Windows only)..."
 Push-Location $InstallerDir
 try {
-    Prepare-AssetsForTarget -TargetLauncherName $LauncherWinName -TargetLauncherDest "launcher.exe"
+    $winSpec = Get-TargetBuildSpec "windows"
+    Prepare-AssetsForTarget -TargetLauncherName $winSpec.LauncherName -TargetLauncherDest $winSpec.LauncherAsset
+    Build-UninstallerAsset -Spec $winSpec
     New-WindowsIconResources
-    $env:GOOS = "windows"; $env:GOARCH = "amd64"
-    & go build -ldflags="-s -w" -trimpath -o (Join-Path $OutputsDir $InstallerWinName) .
+    $env:GOOS = $winSpec.GOOS; $env:GOARCH = $winSpec.GOARCH
+    & go build -ldflags="-s -w" -trimpath -o (Join-Path $OutputsDir $winSpec.OutputName) .
     if ($LASTEXITCODE -ne 0) { throw "Build Windows installer falló" }
 
     Remove-Item Env:GOOS, Env:GOARCH -ErrorAction SilentlyContinue
@@ -128,9 +170,11 @@ try {
 Write-Step "Compilando installer Linux (assets Linux only)..."
 Push-Location $InstallerDir
 try {
-    Prepare-AssetsForTarget -TargetLauncherName $LauncherLinuxName -TargetLauncherDest "launcher-linux"
-    $env:GOOS = "linux"; $env:GOARCH = "amd64"
-    & go build -ldflags="-s -w" -trimpath -o (Join-Path $OutputsDir $InstallerLinuxName) .
+    $linuxSpec = Get-TargetBuildSpec "linux"
+    Prepare-AssetsForTarget -TargetLauncherName $linuxSpec.LauncherName -TargetLauncherDest $linuxSpec.LauncherAsset
+    Build-UninstallerAsset -Spec $linuxSpec
+    $env:GOOS = $linuxSpec.GOOS; $env:GOARCH = $linuxSpec.GOARCH
+    & go build -ldflags="-s -w" -trimpath -o (Join-Path $OutputsDir $linuxSpec.OutputName) .
     if ($LASTEXITCODE -ne 0) { throw "Build Linux installer falló" }
 
     Remove-Item Env:GOOS, Env:GOARCH -ErrorAction SilentlyContinue
