@@ -8,4 +8,5 @@ Utilidades de Git para el flujo diario de desarrollo.
 | `estado_repo.ps1` | Vista completa del estado del repo: ramas, stash, remotes, cambios pendientes |
 | `historial_commits.ps1` | Historial visual de commits con grafo, autor y fecha |
 | `limpiar_ramas.ps1` | Elimina ramas locales ya mergeadas en main/master |
+| `gestionar_worktrees.ps1` | Menú para listar, crear, eliminar y podar (`prune`) worktrees |
 | `push_todos_remotes.ps1` | Hace commit (si hay cambios) y push a todos los remotes configurados |
