@@ -1,6 +1,6 @@
 # Nuevos prompts en DevLauncher
 
-Usa estas reglas cuando crees un archivo nuevo en `prompts/`.
+Usa estas reglas cuando crees un archivo nuevo en `robots/prompts/`.
 
 ## 1) Cuándo crear un prompt nuevo
 
@@ -43,7 +43,7 @@ Mantén el contenido accionable y orientado a ejecución, no teoría.
 
 ## 5) Integración obligatoria con el índice
 
-Cada nuevo archivo en `prompts/` debe añadirse en `prompts/index.md` con:
+Cada nuevo archivo en `robots/prompts/` debe añadirse en `robots/prompts/index.md` con:
 
 - nombre de archivo,
 - cuándo usarlo,
@@ -63,4 +63,4 @@ Si no está en el índice, se considera incompleto.
 - [ ] El nombre del archivo es claro y consistente.
 - [ ] El prompt tiene objetivo, uso, reglas y checklist.
 - [ ] No contradice instrucciones del repositorio.
-- [ ] Se agregó/actualizó entrada en `prompts/index.md`.
+- [ ] Se agregó/actualizó entrada en `robots/prompts/index.md`.

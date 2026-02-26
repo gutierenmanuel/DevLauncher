@@ -9,7 +9,7 @@ Este índice centraliza qué prompt usar según la tarea.
   - **Cubre:** pausas con input, selección numérica, códigos de salida, metadatos para el launcher, estructura por carpetas.
 
 - `nuevos_prompts.md`
-  - **Usar cuando:** se cree o actualice documentación de prompts dentro de `prompts/`.
+  - **Usar cuando:** se cree o actualice documentación de prompts dentro de `robots/prompts/`.
   - **Cubre:** criterio para crear prompts nuevos, estructura recomendada, estilo, mantenimiento y actualización obligatoria del índice.
 
 - `nuevas_carpetas.md`
