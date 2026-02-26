@@ -34,6 +34,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -51,6 +52,78 @@ func main() {
 		case "-l", "--list":
 			// Imprime todas las categorías y scripts en stdout, sin TUI.
 			app.ListAllScripts()
+			return
+		case "--menu-json":
+			payload, err := app.BuildMenuJSONBytes(true)
+			if err != nil {
+				fmt.Printf("Error al generar menú JSON: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(string(payload))
+			return
+		case "--run":
+			if len(os.Args) < 3 {
+				fmt.Println("Uso: launcher --run <script|relpath|abspath> [--cwd <ruta>] [--json] [-- arg1 arg2 ...]")
+				os.Exit(1)
+			}
+
+			scriptQuery := os.Args[2]
+			workingDir := ""
+			jsonOutput := false
+			scriptArgs := make([]string, 0)
+
+			for i := 3; i < len(os.Args); i++ {
+				arg := os.Args[i]
+				if arg == "--" {
+					scriptArgs = append(scriptArgs, os.Args[i+1:]...)
+					break
+				}
+
+				switch arg {
+				case "--json":
+					jsonOutput = true
+				case "--cwd":
+					if i+1 >= len(os.Args) {
+						fmt.Println("Falta valor para --cwd")
+						os.Exit(1)
+					}
+					workingDir = os.Args[i+1]
+					i++
+				default:
+					scriptArgs = append(scriptArgs, arg)
+				}
+			}
+
+			result, err := app.RunScriptByQuery(scriptQuery, workingDir, scriptArgs)
+			if err != nil {
+				if jsonOutput {
+					errOut, _ := json.Marshal(map[string]string{"error": err.Error()})
+					fmt.Println(string(errOut))
+				} else {
+					fmt.Printf("Error: %v\n", err)
+				}
+				os.Exit(1)
+			}
+
+			if jsonOutput {
+				payload, marshalErr := json.MarshalIndent(result, "", "  ")
+				if marshalErr != nil {
+					fmt.Printf("Error serializando resultado JSON: %v\n", marshalErr)
+					os.Exit(1)
+				}
+				fmt.Println(string(payload))
+			} else {
+				fmt.Printf("Script: %s\n", result.ScriptName)
+				fmt.Printf("Ruta: %s\n", result.Path)
+				fmt.Printf("WorkingDir: %s\n", result.WorkingDir)
+				fmt.Printf("ExitCode: %d\n", result.ExitCode)
+				fmt.Println("--- Output ---")
+				fmt.Print(result.Output)
+			}
+
+			if result.ExitCode != 0 {
+				os.Exit(result.ExitCode)
+			}
 			return
 		default:
 			fmt.Printf("Opción desconocida: %s\n", os.Args[1])
@@ -78,6 +151,10 @@ func showHelp() {
 	fmt.Println("Opciones:")
 	fmt.Println("  (sin opciones)   Abre el menú interactivo jerárquico")
 	fmt.Println("  -l, --list       Lista todos los scripts organizados por categoría")
+	fmt.Println("  --menu-json      Exporta el árbol de menús en JSON (con descripciones)")
+	fmt.Println("  --run <script>   Ejecuta script por nombre/ruta sin abrir TUI")
+	fmt.Println("    --cwd <ruta>   Define directorio de trabajo para --run")
+	fmt.Println("    --json         Devuelve resultado de --run en JSON")
 	fmt.Println("  -h, --help       Muestra esta ayuda")
 	fmt.Println()
 	fmt.Println("Navegación en la TUI:")

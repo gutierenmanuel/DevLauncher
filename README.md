@@ -173,6 +173,25 @@ devlauncher --list
 
 Muestra estructura completa organizada por categorías con descripciones.
 
+### 🤖 Modo LLM (JSON + ejecución no interactiva)
+
+```bash
+# Exportar árbol completo de menús con descripciones
+devlauncher --menu-json
+
+# Ejecutar script sin abrir la TUI
+devlauncher --run version_actual.ps1 --json
+
+# Ejecutar por ruta relativa y pasar argumentos
+devlauncher --run configuracion_devlauncher/tests_de_scripts.ps1 --json -- --quick
+```
+
+Esto permite a un LLM:
+
+1. Leer opciones de cada menú de forma estructurada.
+2. Seleccionar script por nombre o ruta.
+3. Ejecutar y procesar el resultado (`exitCode`, `output`) en JSON.
+
 ### ⚡ Ejecutar Directamente
 
 ```bash

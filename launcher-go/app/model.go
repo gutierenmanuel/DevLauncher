@@ -1,9 +1,7 @@
 package app
 
 import (
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -41,7 +39,7 @@ type Model struct {
 
 // NewModel creates and initialises a new application Model.
 func NewModel() Model {
-	rootDir, launchDir := findRootDirWithLaunch()
+	rootDir, launchDir := middleware.ResolveRootDirWithLaunch()
 
 	staticDir := middleware.GetStaticPath(rootDir)
 	scriptsRoot := middleware.GetScriptsPath(rootDir)
@@ -242,32 +240,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // findRootDir returns the rootDir (exported for use in views.go).
 func findRootDir() (string, error) {
-	root, _ := findRootDirWithLaunch()
+	root, _ := middleware.ResolveRootDirWithLaunch()
 	return root, nil
-}
-
-// findRootDirWithLaunch resolves rootDir and launchDir using multiple strategies.
-func findRootDirWithLaunch() (rootDir, launchDir string) {
-	if cwd, err := os.Getwd(); err == nil {
-		launchDir = cwd
-	}
-
-	if cwd, err := os.Getwd(); err == nil {
-		if _, err := os.Stat(filepath.Join(cwd, "..", "scripts")); err == nil {
-			rootDir, _ = filepath.Abs("..")
-		} else if _, err := os.Stat(filepath.Join(cwd, "scripts")); err == nil {
-			rootDir = cwd
-		}
-	}
-
-	if rootDir == "" {
-		execPath, _ := os.Executable()
-		realPath, _ := filepath.EvalSymlinks(execPath)
-		rootDir = filepath.Dir(realPath)
-	}
-
-	if strings.TrimSpace(launchDir) == "" {
-		launchDir = rootDir
-	}
-	return
 }

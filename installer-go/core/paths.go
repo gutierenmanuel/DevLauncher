@@ -1,20 +1,13 @@
 package core
 
 import (
-	"os"
 	"path/filepath"
 	"runtime"
 )
 
-// GetInstallDir returns the default installation directory for DevLauncher.
-func GetInstallDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		home = os.Getenv("USERPROFILE")
-		if home == "" {
-			home = os.Getenv("HOME")
-		}
-	}
+// BuildInstallDir returns the default installation directory for DevLauncher
+// from a provided home directory.
+func BuildInstallDir(home string) string {
 	return filepath.Join(home, ".devlauncher")
 }
 

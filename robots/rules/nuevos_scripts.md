@@ -164,3 +164,13 @@ Scripts de mantenimiento de instalación y estado de DevLauncher.
 - [ ] Si tiene múltiples acciones, usa menú numérico validado.
 - [ ] Devuelve código de salida correcto (`0` éxito / no-cero error).
 - [ ] Si es nueva categoría/subcarpeta, tiene `README.md` con icono+descripción.
+
+## 10) Compatibilidad con LLM (recomendado)
+
+Para que un LLM seleccione y ejecute scripts con menor error:
+
+- Usa nombres únicos y expresivos (evitar duplicados como `run.ps1` en varias carpetas).
+- Incluye una descripción inicial concreta con verbo + objetivo.
+- Documenta parámetros esperados al inicio del script (comentario breve de uso).
+- Evita prompts interactivos innecesarios cuando el script reciba parámetros por CLI.
+- Mantén salida legible y estable para parseo automático (mensajes consistentes).
